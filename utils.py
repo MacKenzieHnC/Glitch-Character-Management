@@ -3,6 +3,7 @@ from discord.ui import View, Select
 import asyncio
 
 
+# TODO: Handle timeout from ignored?
 async def select_menu(ctx, options: dict):
     response = []
     select = Select(
@@ -31,3 +32,7 @@ async def select_menu(ctx, options: dict):
         await asyncio.sleep(1)
 
     return response[0]
+
+
+def error_text(e):
+    return f"```ansi\n\u001b[1;40m\u001b[1;31mError: {e}\n```"

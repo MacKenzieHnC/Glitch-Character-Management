@@ -2,7 +2,7 @@ import discord
 import os  # default module
 import aiosqlite
 from dotenv import load_dotenv
-from utils import select_menu
+from utils import error_text, select_menu
 
 load_dotenv()  # load all the variables from the env file
 bot = discord.Bot()
@@ -26,7 +26,7 @@ async def addChar(ctx, name: str):
         await db.commit()
         await ctx.respond("Made it!")
     except Exception as e:
-        await ctx.respond(f"```ansi\n\u001b[1;40m\u001b[1;31mError: {e}\n```")
+        await ctx.respond(error_text(e))
     finally:
         await cursor.close()
         await db.close()
