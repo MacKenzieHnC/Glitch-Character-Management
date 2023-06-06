@@ -13,11 +13,6 @@ async def on_ready():
     print(f"{bot.user} is ready and online!")
 
 
-@bot.slash_command(name="hello", description="Say hello to the bot")
-async def hello(ctx):
-    await ctx.respond("Hey!")
-
-
 @bot.slash_command(name="add_char", description="Add a character")
 @discord.option(
     "name", description="Name to type when accessing this character", required=True
