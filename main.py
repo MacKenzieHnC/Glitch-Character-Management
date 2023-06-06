@@ -2,6 +2,7 @@ import discord
 import os  # default module
 import aiosqlite
 from dotenv import load_dotenv
+from utils import select_menu
 
 load_dotenv()  # load all the variables from the env file
 bot = discord.Bot()
@@ -34,6 +35,15 @@ async def addChar(ctx, name: str):
     finally:
         await cursor.close()
         await db.close()
+
+
+@bot.slash_command()
+async def select(ctx):
+    print(
+        await select_menu(
+            ctx, {"1": "I am 1's value", "2": "I am 2's value", "3": "I am 3's value"}
+        )
+    )
 
 
 bot.run(os.getenv("TOKEN"))  # run the bot with the token
