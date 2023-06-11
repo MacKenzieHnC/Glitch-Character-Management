@@ -2,7 +2,6 @@ import discord
 import os  # default module
 from dotenv import load_dotenv
 from cogs.game import GameCog
-from utils import select_menu
 
 load_dotenv()  # load all the variables from the env file
 bot = discord.Bot()
