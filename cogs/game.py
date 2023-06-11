@@ -5,6 +5,33 @@ from discord.ext import commands
 from utils import error_text, get_text_input, get_user_selector_input
 
 
+class Game:
+    def __init__(self, id, gm, name):
+        self.id = id
+        self.gm = gm
+        self.name = name
+
+
+async def get_guild_games(ctx):
+    games = []
+    try:
+        db = await aiosqlite.connect("data/Assets.db")
+        async with db.execute(
+            f"""SELECT id, gm, name
+                                    FROM game
+                                    WHERE guild = {ctx.guild.id}"""
+        ) as cursor:
+            async for row in cursor:
+                games.append(Game(*row))
+        await cursor.close()
+    except Exception as e:
+        await ctx.respond(error_text(e))
+    finally:
+        await db.close()
+
+    return games
+
+
 ###################################
 #   COMMANDS
 ###################################
