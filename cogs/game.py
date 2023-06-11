@@ -1,4 +1,5 @@
 import aiosqlite
+from discord import SlashCommandGroup
 from discord.ext import commands
 
 from utils import error_text, get_text_input, get_user_selector_input
@@ -13,9 +14,9 @@ class GameCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(
-        name="add_game", description="Add a new game to this server"
-    )
+    game_commands = SlashCommandGroup("game", "Commands for games")
+
+    @game_commands.command(name="add", description="Add a new game to this server")
     async def addGame(self, ctx):
         # Get game data
         name = await get_text_input(
