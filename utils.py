@@ -47,3 +47,29 @@ async def get_user_selector_input(ctx, message: str):
     while len(response) == 0:
         await asyncio.sleep(1)
     return response[0]
+
+
+async def get_selector_input(ctx, message: str, options):
+    response = []
+
+    class SelectorView(discord.ui.View):
+        @discord.ui.select(  # the decorator that lets you specify the properties of the select menu
+            placeholder="Choose option",  # the placeholder text that will be displayed if nothing is selected
+            min_values=1,  # the minimum number of values that must be selected by the users
+            max_values=1,  # the maximum number of values that can be selected by the users
+            options=[
+                discord.SelectOption(
+                    label=str(i) + ": " + options[i].name, value=str(i)
+                )
+                for i in range(len(options))
+            ],
+        )
+        async def select_callback(
+            self, select, interaction
+        ):  # the function called when the user is done selecting options
+            response.append(options[int(select.values[0])])
+
+    await ctx.respond(message, view=SelectorView())
+    while len(response) == 0:
+        await asyncio.sleep(1)
+    return response[0]
