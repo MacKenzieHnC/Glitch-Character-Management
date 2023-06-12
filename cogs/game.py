@@ -13,7 +13,7 @@ class Game:
 
 
 async def get_guild_games(ctx):
-    games = []
+    games: list[Game] = []
     try:
         db = await aiosqlite.connect("data/Assets.db")
         async with db.execute(
