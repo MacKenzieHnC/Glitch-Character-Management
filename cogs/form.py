@@ -73,8 +73,9 @@ async def get_form_input(ctx, options: dict[list[Field]]):
 
             if valid:
                 response.append(options)
+                paginator.edit("Success", delete_after=0)
                 await interaction.response.edit_message(
-                    content="Success", view=None, embed=None
+                    content="Success", view=None, embed=None, delete_after=0
                 )
             else:
                 await interaction.response.edit_message(

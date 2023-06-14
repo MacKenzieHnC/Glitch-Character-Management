@@ -34,7 +34,7 @@ async def get_text_input(ctx, title: str, labels: str | list[str]):
         async def callback(self, interaction: discord.Interaction):
             for child in self.children:
                 response.append(child.value)
-            await interaction.response.send_message("Great!")
+            await interaction.response.edit_message(content="Great!", delete_after=0)
 
     modal = TextModal(title=title)
     await ctx.send_modal(modal)
@@ -54,7 +54,9 @@ async def get_user_selector_input(ctx, message: str):
         async def select_callback(self, select, interaction):
             response.append(select.values[0])
             select.disabled = True
-            await interaction.response.send_message(f"{select.values[0]} selected!")
+            await interaction.response.edit_message(
+                content=f"{select.values[0]} selected!", view=None, delete_after=0
+            )
 
     await ctx.respond(
         message,
@@ -85,7 +87,11 @@ async def get_selector_input(ctx, message: str, options):
         ):  # the function called when the user is done selecting options
             response.append(options[int(select.values[0])])
             select.disabled = True
-            await interaction.response.send_message(f"{select.values[0]} selected!")
+            await interaction.response.edit_message(
+                content=f"{options[int(select.values[0])].name} selected!",
+                view=None,
+                delete_after=0,
+            )
 
     await ctx.respond(message, view=SelectorView())
     while len(response) == 0:
