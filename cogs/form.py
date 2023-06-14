@@ -3,40 +3,86 @@ import asyncio
 import discord
 from discord.ext import pages
 
+from utils import error_text
 
-async def get_form_input(ctx, options: dict[str : dict[str:any]]):
-    def get_page(key):
-        page = discord.Embed(title=page_name)
-        for key in options[page_name]:
-            page.add_field(name=key, value=options[page_name][key], inline=False)
-        return page
 
+class Field:
+    def __init__(self, label: str, value: any, validate):
+        self.label = label
+        self.value = value
+        self.validate = validate
+
+    def is_valid(self):
+        return self.validate(self.value)
+
+
+async def get_form_input(ctx, options: dict[list[Field]]):
+    response = []
+    # Initialize pages
     page_list: list[discord.Embed] = []
     for page_name in options.keys():
-        page_list.append(get_page(page_name))
+        page = discord.Embed(title=page_name)
+        for field in options[page_name]:
+            page.add_field(name=field.label, value=field.value, inline=False)
+        page_list.append(page)
 
-    class EditButton(discord.ui.View):
-        @discord.ui.button(label="EDIT", style=discord.ButtonStyle.primary)
-        async def button_callback(self, button, interaction):
-            key = list(options.keys())[paginator.current_page]
+    # The View containing the edit button
+    class ButtonView(discord.ui.View):
+        @discord.ui.button(label="EDIT", style=discord.ButtonStyle.primary, row=2)
+        async def edit_button_callback(self, button, interaction):
+            fields = options[list(options.keys())[paginator.current_page]]
 
             class EditModal(discord.ui.Modal):
                 def __init__(self, *args, **kwargs) -> None:
                     super().__init__(*args, **kwargs)
-                    for field in options[key]:
-                        self.add_item(discord.ui.InputText(label=field))
+                    for field in fields:
+                        self.add_item(
+                            discord.ui.InputText(
+                                label=field.label, value=str(field.value)
+                            )
+                        )
 
                 async def callback(self, interaction: discord.Interaction):
                     current_page = paginator.current_page
-                    fields = list(options[key].keys())
                     for i in range(len(fields)):
-                        options[key][fields[i]] = self.children[i].value
-                        page_list[current_page].fields[i].value = self.children[i].value
+                        fields[i].value = self.children[i].value
+                        if fields[i].is_valid():
+                            page_list[current_page].fields[i].value = str(
+                                self.children[i].value
+                            )
+                        else:
+                            page_list[current_page].fields[i].value = (
+                                str(self.children[i].value)
+                                + " "
+                                + error_text("invalid")
+                            )
                     await interaction.response.edit_message(content="Success")
                     await paginator.goto_page(current_page)
 
             modal = EditModal(title=list(options.keys())[paginator.current_page])
             await interaction.response.send_modal(modal)
 
-    paginator = pages.Paginator(pages=page_list, custom_view=EditButton())
+        @discord.ui.button(label="SUBMIT", style=discord.ButtonStyle.green, row=2)
+        async def submit_button_callback(self, button, interaction):
+            valid = True
+            for key in list(options.keys()):
+                for field in options[key]:
+                    if not field.is_valid():
+                        valid = False
+                        break
+
+            if valid:
+                response.append(options)
+                await interaction.response.edit_message(
+                    content="Success", view=None, embed=None
+                )
+            else:
+                await interaction.response.edit_message(
+                    content=error_text("Content contains invalid responses!")
+                )
+
+    paginator = pages.Paginator(pages=page_list, custom_view=ButtonView())
     await paginator.respond(ctx.interaction, ephemeral=False)
+    while len(response) == 0:
+        await asyncio.sleep(1)
+    return response[0]

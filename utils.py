@@ -4,28 +4,46 @@ import asyncio
 
 
 def error_text(e):
-    return f"```ansi\n\u001b[1;40m\u001b[1;31mError: {e}\n```"
+    return f"`Error: {e}`"
 
 
-async def get_text_input(ctx, title: str, label: str):
-    response = []
+def validate_str(value: str):
+    return len(value) > 0
+
+
+def validate_int(value: str):
+    try:
+        value = int(value)
+        return True
+    except ValueError:
+        return False
+
+
+async def get_text_input(ctx, title: str, labels: str | list[str]):
+    response: list[str] = []
 
     class TextModal(discord.ui.Modal):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
-            self.add_item(discord.ui.InputText(label=label))
+            if isinstance(labels, str):
+                self.add_item(discord.ui.InputText(label=labels))
+            else:
+                for label in labels:
+                    self.add_item(discord.ui.InputText(label=label))
 
         async def callback(self, interaction: discord.Interaction):
-            response.append(self.children[0].value)
-            await interaction.response.send_message(
-                f'Great! So the game will be called "{response[0]}"'
-            )
+            for child in self.children:
+                response.append(child.value)
+            await interaction.response.send_message("Great!")
 
     modal = TextModal(title=title)
-    await ctx.response.send_modal(modal)
+    await ctx.send_modal(modal)
     while len(response) == 0:
         await asyncio.sleep(1)
-    return response[0]
+    if len(response) == 1:
+        return response[0]
+    else:
+        return response
 
 
 async def get_user_selector_input(ctx, message: str):
@@ -35,10 +53,8 @@ async def get_user_selector_input(ctx, message: str):
         @discord.ui.select(select_type=discord.ComponentType.user_select)
         async def select_callback(self, select, interaction):
             response.append(select.values[0])
-            await interaction.response.edit_message(
-                content=f"{select.values[0]} selected!",
-                view=None,
-            )
+            select.disabled = True
+            await interaction.response.send_message(f"{select.values[0]} selected!")
 
     await ctx.respond(
         message,
@@ -68,6 +84,8 @@ async def get_selector_input(ctx, message: str, options):
             self, select, interaction
         ):  # the function called when the user is done selecting options
             response.append(options[int(select.values[0])])
+            select.disabled = True
+            await interaction.response.send_message(f"{select.values[0]} selected!")
 
     await ctx.respond(message, view=SelectorView())
     while len(response) == 0:
