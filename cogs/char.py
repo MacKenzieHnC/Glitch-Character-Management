@@ -1,7 +1,7 @@
 import aiosqlite
 from discord import SlashCommandGroup
 from discord.ext import commands
-from cogs.form import Field, get_form_input
+from cogs.form import Field, get_form
 from cogs.game import GameCog, get_guild_games
 
 from utils import (
@@ -72,6 +72,52 @@ class Character:
         # self.quests = quests
 
 
+def to_dict(char: Character):
+    return {
+        "Name": [
+            Field("Name", char.name, validate_str),
+            Field("XP", char.xp, validate_int),
+        ],
+        "Stats": [
+            Field(key[0], key[1], validate_int)
+            for key in [
+                ("Eide", char.eide),
+                ("Lore", char.lore),
+                ("Flore", char.flore),
+                ("Wyrd", char.wyrd),
+                ("Ability", char.ability),
+            ]
+        ],
+        "Costs": [
+            Field(key[0], key[1], validate_int)
+            for key in [
+                ("Stillness", char.stillness),
+                ("Immersion", char.immersion),
+                ("Fugue", char.fugue),
+                ("Burn", char.burn),
+                ("Wear", char.wear),
+            ]
+        ],
+    }
+
+
+DEFAULT_CHAR = Character(
+    author="No One",
+    name="",
+    xp=0,
+    eide=0,
+    flore=0,
+    lore=0,
+    wyrd=0,
+    ability=0,
+    stillness=0,
+    immersion=0,
+    fugue=0,
+    burn=0,
+    wear=0,
+)
+
+
 ###################################
 #   COMMANDS
 ###################################
@@ -91,19 +137,9 @@ class CharCog(commands.Cog):
             await get_guild_games(ctx),
         )
 
-        options = {
-            "Name": [Field("Name", "", validate_str), Field("XP", 0, validate_int)],
-            "Stats": [
-                Field(key, 0, validate_int)
-                for key in ["Eide", "Lore", "Flore", "Wyrd", "Ability"]
-            ],
-            "Costs": [
-                Field(key, 0, validate_int)
-                for key in ["Stillness", "Immersion", "Fugue", "Burn", "Wear"]
-            ],
-        }
+        options = to_dict(DEFAULT_CHAR)
 
-        options: dict[list[Field]] = await get_form_input(ctx, options)
+        options: dict[list[Field]] = await get_form(ctx, options)
 
         options = [field for key in list(options.keys()) for field in options[key]]
 

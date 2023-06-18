@@ -16,7 +16,7 @@ class Field:
         return self.validate(self.value)
 
 
-async def get_form_input(ctx, options: dict[list[Field]]):
+async def get_form(ctx, options: dict[list[Field]], display_only=False):
     response = []
     # Initialize pages
     page_list: list[discord.Embed] = []
@@ -82,7 +82,9 @@ async def get_form_input(ctx, options: dict[list[Field]]):
                     content=error_text("Content contains invalid responses!")
                 )
 
-    paginator = pages.Paginator(pages=page_list, custom_view=ButtonView())
+    paginator = pages.Paginator(
+        pages=page_list, custom_view=None if display_only else ButtonView()
+    )
     await paginator.respond(ctx.interaction, ephemeral=False)
     while len(response) == 0:
         await asyncio.sleep(1)
