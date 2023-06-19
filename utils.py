@@ -32,9 +32,12 @@ async def get_text_input(ctx, title: str, labels: str | list[str]):
                     self.add_item(discord.ui.InputText(label=label))
 
         async def callback(self, interaction: discord.Interaction):
-            for child in self.children:
-                response.append(child.value)
-            await interaction.response.edit_message(content="Great!", delete_after=0)
+            if interaction.user.id == ctx.author.id:
+                for child in self.children:
+                    response.append(child.value)
+                await interaction.response.edit_message(
+                    content="Great!", delete_after=0
+                )
 
     modal = TextModal(title=title)
     await ctx.send_modal(modal)
@@ -52,11 +55,12 @@ async def get_user_selector_input(ctx, message: str):
     class UserSelector(discord.ui.View):
         @discord.ui.select(select_type=discord.ComponentType.user_select)
         async def select_callback(self, select, interaction):
-            response.append(select.values[0])
-            select.disabled = True
-            await interaction.response.edit_message(
-                content=f"{select.values[0]} selected!", view=None, delete_after=0
-            )
+            if interaction.user.id == ctx.author.id:
+                response.append(select.values[0])
+                select.disabled = True
+                await interaction.response.edit_message(
+                    content=f"{select.values[0]} selected!", view=None, delete_after=0
+                )
 
     await ctx.respond(
         message,
@@ -85,15 +89,41 @@ async def get_selector_input(ctx, message: str, options):
         async def select_callback(
             self, select, interaction
         ):  # the function called when the user is done selecting options
-            response.append(options[int(select.values[0])])
-            select.disabled = True
-            await interaction.response.edit_message(
-                content=f"{options[int(select.values[0])].name} selected!",
-                view=None,
-                delete_after=0,
-            )
+            if interaction.user.id == ctx.author.id:
+                response.append(options[int(select.values[0])])
+                select.disabled = True
+                await interaction.response.edit_message(
+                    content=f"{options[int(select.values[0])].name} selected!",
+                    view=None,
+                    delete_after=0,
+                )
 
     await ctx.respond(message, view=SelectorView())
     while len(response) == 0:
         await asyncio.sleep(1)
     return response[0]
+
+
+async def confirmation_button(ctx, message, confirm_method, cancel_method):
+    class ButtonView(discord.ui.View):
+        @discord.ui.button(label="CANCEL", style=discord.ButtonStyle.red, row=2)
+        async def submit_button_callback(self, button, interaction):
+            if interaction.user.id == ctx.author.id:
+                await cancel_method()
+                await interaction.response.edit_message(
+                    content=f"Success!",
+                    view=None,
+                    delete_after=0,
+                )
+
+        @discord.ui.button(label="OKAY", style=discord.ButtonStyle.green, row=2)
+        async def submit_button_callback(self, button, interaction):
+            if interaction.user.id == ctx.author.id:
+                await confirm_method()
+                await interaction.response.edit_message(
+                    content=f"Success!",
+                    view=None,
+                    delete_after=0,
+                )
+
+    ctx.respond(message, view=ButtonView())
