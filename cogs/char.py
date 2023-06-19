@@ -143,10 +143,10 @@ class CharCog(commands.Cog):
 
         options = [field for key in list(options.keys()) for field in options[key]]
 
-        sql = "INSERT INTO char (guild,\n\tauthor"
+        sql = "INSERT INTO char (author"
         for field in options:
             sql += ",\n\t" + field.label.lower()
-        sql += ")\nVALUES(?, ?"
+        sql += ")\nVALUES(?"
         for field in options:
             sql += ", ?"
         sql += ")"
@@ -156,7 +156,6 @@ class CharCog(commands.Cog):
             cursor = await db.execute(
                 sql,
                 (
-                    str(ctx.guild.id),
                     str(ctx.author),
                     *[field.value for field in options],
                 ),
@@ -174,3 +173,6 @@ class CharCog(commands.Cog):
             await ctx.respond(error_text(e))
         finally:
             await db.close()
+
+        # @commands.slash_command(name="wyrd", description="Spend Wyrd to do magic")
+        # async def wyrd(ctx):
