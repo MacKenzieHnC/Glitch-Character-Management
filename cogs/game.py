@@ -2,7 +2,12 @@ import aiosqlite
 from discord import SlashCommandGroup
 from discord.ext import commands
 
-from utils import error_text, get_text_input, get_user_selector_input
+from utils import (
+    error_text,
+    get_selector_input,
+    get_text_input,
+    get_user_selector_input,
+)
 
 
 class Game:
@@ -19,7 +24,8 @@ async def get_guild_games(ctx):
         async with db.execute(
             f"""SELECT id, gm, name
                                     FROM game
-                                    WHERE guild = {ctx.guild.id}"""
+                                    WHERE guild = ?""",
+            [ctx.guild.id],
         ) as cursor:
             async for row in cursor:
                 games.append(Game(*row))
@@ -30,6 +36,35 @@ async def get_guild_games(ctx):
         await db.close()
 
     return games
+
+
+async def setActiveGame(ctx, game: Game):
+    try:
+        db = await aiosqlite.connect("data/Assets.db")
+        # Remove all currently active games (should only be 0 or 1 tho)
+        cursor = await db.execute(
+            f"""DELETE
+                    FROM active_game
+                    WHERE game IN
+                        (SELECT game
+                        FROM active_game ag
+                        JOIN game g ON ag.game = g.id
+                        WHERE g.guild = ?)""",
+            [ctx.guild.id],
+        )
+        await cursor.execute(
+            f"""INSERT INTO active_game (game)
+                        VALUES(?)""",
+            [game.id],
+        )
+        await db.commit()
+        await ctx.respond(f"""Active game changed to "{game.name}"!""")
+    except Exception as e:
+        await ctx.respond(error_text(e))
+    finally:
+        if cursor:
+            await cursor.close()
+        await db.close()
 
 
 ###################################
@@ -66,3 +101,37 @@ class GameCog(commands.Cog):
             if cursor:
                 await cursor.close()
             await db.close()
+
+    @game_commands.command(name="get_active", description="Display the active game")
+    @commands.is_owner()
+    async def getActive(self, ctx):
+        try:
+            cursor = None
+            db = await aiosqlite.connect("data/Assets.db")
+            cursor = await db.execute(
+                f"""SELECT name
+                    FROM active_game ag
+                    JOIN game g ON ag.game = g.id
+                    WHERE g.guild = ?""",
+                [ctx.guild.id],
+            )
+            await db.commit()
+            async for row in cursor:
+                await ctx.respond(f"""Currently active game is "{row[0]}"!""")
+        except Exception as e:
+            await ctx.respond(error_text(e))
+        finally:
+            if cursor:
+                await cursor.close()
+            await db.close()
+
+    @game_commands.command(name="set_active", description="Change the active game")
+    @commands.is_owner()
+    async def setActive(self, ctx):
+        game: GameCog = await get_selector_input(
+            ctx,
+            "What game will be active?",
+            await get_guild_games(ctx),
+        )
+
+        await setActiveGame(ctx, game)
