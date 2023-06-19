@@ -1,8 +1,10 @@
 import aiosqlite
 from discord import SlashCommandGroup
+import discord
 from discord.ext import commands
 from cogs.form import Field, get_form
 from cogs.game import GameCog, get_guild_games
+from enum import Enum
 
 from utils import (
     error_text,
@@ -10,6 +12,18 @@ from utils import (
     validate_int,
     validate_str,
 )
+
+
+class Stat(Enum):
+    def __init__(self, stat, cost):
+        self.stat = stat
+        self.cost = cost
+
+    EIDE = ("Eide", "Stillness")
+    FLORE = ("Flore", "Immersion")
+    LORE = ("Lore", "Fugue")
+    WYRD = ("Wyrd", "Burn")
+    ABILITY = ("Ability", "Wear")
 
 
 class Character:
@@ -118,6 +132,20 @@ DEFAULT_CHAR = Character(
 )
 
 
+def init_spend(bot):
+    def addCommand(t: Stat):
+        @bot.slash_command(
+            name=t.stat.lower(),
+            description=f"""Spend {t.cost.lower()} to do magic""",
+        )
+        @discord.option("amount", description="Amount to spend", required=True)
+        async def _spend(ctx, amount: int):
+            await ctx.respond(f"""You spent {amount} {t.cost.lower()}!""")
+
+    for t in Stat:
+        addCommand(t)
+
+
 ###################################
 #   COMMANDS
 ###################################
@@ -173,6 +201,3 @@ class CharCog(commands.Cog):
             await ctx.respond(error_text(e))
         finally:
             await db.close()
-
-        # @commands.slash_command(name="wyrd", description="Spend Wyrd to do magic")
-        # async def wyrd(ctx):
