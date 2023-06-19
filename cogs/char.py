@@ -93,8 +93,8 @@ def to_dict(char: Character):
             Field("XP", char.xp, validate_int),
         ],
         "Stats": [
-            Field(key[0], key[1], validate_int)
-            for key in [
+            Field(stat[0], stat[1], validate_int)
+            for stat in [
                 ("Eide", char.eide),
                 ("Lore", char.lore),
                 ("Flore", char.flore),
@@ -103,8 +103,8 @@ def to_dict(char: Character):
             ]
         ],
         "Costs": [
-            Field(key[0], key[1], validate_int)
-            for key in [
+            Field(cost[0], cost[1], validate_int)
+            for cost in [
                 ("Stillness", char.stillness),
                 ("Immersion", char.immersion),
                 ("Fugue", char.fugue),
