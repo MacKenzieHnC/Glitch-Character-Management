@@ -146,7 +146,6 @@ def init_spend(bot):
             try:
                 char = await get_single_character(
                     ctx,
-                    zero_msg="You have no characters in this game yet!",
                     choose_msg=f"What character will be spending {t.stat}?",
                 )
             except Exception as e:
@@ -213,10 +212,12 @@ async def get_characters(ctx):
     return chars
 
 
-async def get_single_character(ctx, zero_msg: str, choose_msg: str):
+async def get_single_character(ctx, choose_msg: str):
     chars = await get_characters(ctx)
     if len(chars) == 0:
-        raise Exception(zero_msg)
+        raise Exception(
+            "You have no characters in this game yet!",
+        )
     elif len(chars) == 1:
         char = chars[0]
     else:
@@ -275,6 +276,44 @@ class CharCog(commands.Cog):
             await cursor.close()
             await db.commit()
             await ctx.respond(content=f"{options[0].value} added to {game.name}!")
+        except Exception as e:
+            await ctx.respond(error_text(e))
+        finally:
+            await db.close()
+
+    @char_commands.command(name="display", description="Display character sheet")
+    async def displayChar(self, ctx):
+        char = to_dict(
+            await get_single_character(ctx, "What character would you like to display?")
+        )
+        await get_form(ctx, char, display_only=True)
+
+    @char_commands.command(name="edit", description="Edit character sheet")
+    async def displayChar(self, ctx):
+        char = await get_single_character(
+            ctx, "What character would you like to display?"
+        )
+        id = char.id
+
+        char = await get_form(ctx, to_dict(char), display_only=False)
+
+        char: list[Field] = [field for key in list(char.keys()) for field in char[key]]
+
+        sql = "UPDATE char SET "
+        for field in char:
+            sql += field.label.lower() + " = ?,\n"
+        sql = sql[: len(sql) - 2]
+        sql += "\nWHERE id = ?"
+
+        try:
+            db = await aiosqlite.connect("data/Assets.db")
+            cursor = await db.execute(
+                sql,
+                [*[field.value for field in char], id],
+            )
+            await cursor.close()
+            await db.commit()
+            await ctx.respond(content=f"{char[0].value} successfully updated!")
         except Exception as e:
             await ctx.respond(error_text(e))
         finally:
