@@ -67,6 +67,30 @@ async def setActiveGame(ctx, game: Game):
         await db.close()
 
 
+async def getActiveGame(ctx):
+    games: list[Game] = []
+    try:
+        cursor = None
+        db = await aiosqlite.connect("data/Assets.db")
+        cursor = await db.execute(
+            f"""SELECT id, gm, name
+                FROM active_game ag
+                JOIN game g ON ag.game = g.id
+                WHERE g.guild = ?""",
+            [ctx.guild.id],
+        )
+        async for row in cursor:
+            games.append(Game(*row))
+    except Exception as e:
+        await ctx.respond(error_text(e))
+    finally:
+        if cursor:
+            await cursor.close()
+        await db.close()
+
+    return games[0]
+
+
 ###################################
 #   COMMANDS
 ###################################
@@ -105,25 +129,8 @@ class GameCog(commands.Cog):
     @game_commands.command(name="get_active", description="Display the active game")
     @commands.is_owner()
     async def getActive(self, ctx):
-        try:
-            cursor = None
-            db = await aiosqlite.connect("data/Assets.db")
-            cursor = await db.execute(
-                f"""SELECT name
-                    FROM active_game ag
-                    JOIN game g ON ag.game = g.id
-                    WHERE g.guild = ?""",
-                [ctx.guild.id],
-            )
-            await db.commit()
-            async for row in cursor:
-                await ctx.respond(f"""Currently active game is "{row[0]}"!""")
-        except Exception as e:
-            await ctx.respond(error_text(e))
-        finally:
-            if cursor:
-                await cursor.close()
-            await db.close()
+        game = await getActiveGame(ctx)
+        await ctx.respond(f"""Currently active game is "{game.name}"!""")
 
     @game_commands.command(name="set_active", description="Change the active game")
     @commands.is_owner()

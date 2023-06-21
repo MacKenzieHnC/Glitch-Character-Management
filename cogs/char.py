@@ -3,7 +3,7 @@ from discord import SlashCommandGroup
 import discord
 from discord.ext import commands
 from cogs.form import Field, get_form
-from cogs.game import GameCog, get_guild_games
+from cogs.game import GameCog, get_guild_games, getActiveGame
 from enum import Enum
 
 from utils import (
@@ -30,6 +30,7 @@ class Character:
     def __init__(
         # discord access
         self,
+        id,
         author,
         name,
         # stats
@@ -59,6 +60,7 @@ class Character:
         # levers,
         # quests,
     ):
+        self.id = id
         self.author = author
         self.name = name
         self.xp = xp
@@ -84,6 +86,24 @@ class Character:
         # self.arcana = arcana
         # self.levers = levers
         # self.quests = quests
+
+
+DEFAULT_CHAR = Character(
+    id=0,
+    author="No One",
+    name="",
+    xp=0,
+    eide=0,
+    flore=0,
+    lore=0,
+    wyrd=0,
+    ability=0,
+    stillness=0,
+    immersion=0,
+    fugue=0,
+    burn=0,
+    wear=0,
+)
 
 
 def to_dict(char: Character):
@@ -115,23 +135,6 @@ def to_dict(char: Character):
     }
 
 
-DEFAULT_CHAR = Character(
-    author="No One",
-    name="",
-    xp=0,
-    eide=0,
-    flore=0,
-    lore=0,
-    wyrd=0,
-    ability=0,
-    stillness=0,
-    immersion=0,
-    fugue=0,
-    burn=0,
-    wear=0,
-)
-
-
 def init_spend(bot):
     def addCommand(t: Stat):
         @bot.slash_command(
@@ -140,10 +143,85 @@ def init_spend(bot):
         )
         @discord.option("amount", description="Amount to spend", required=True)
         async def _spend(ctx, amount: int):
-            await ctx.respond(f"""You spent {amount} {t.cost.lower()}!""")
+            try:
+                char = await get_single_character(
+                    ctx,
+                    zero_msg="You have no characters in this game yet!",
+                    choose_msg=f"What character will be spending {t.stat}?",
+                )
+            except Exception as e:
+                await ctx.respond(error_text(e))
+
+            msg = f"""{char.name} spent {amount} {t.cost}"""
+            sql = f"""UPDATE char\nSET """
+            if amount >= 5:
+                msg += " and gained 1xp!"
+                sql += "xp = xp + 1,\n"
+            sql += f"""{t.cost.lower()} = {t.cost.lower()} + MAX({amount} - {t.stat.lower()}, 0)\nWHERE id = {char.id}"""
+
+            try:
+                cursor = None
+                db = await aiosqlite.connect("data/Assets.db")
+                cursor = await db.execute(
+                    sql,
+                )
+                await db.commit()
+                await ctx.respond(msg)
+                await cursor.close()
+            except Exception as e:
+                await ctx.respond(error_text(e))
+            finally:
+                await db.close()
 
     for t in Stat:
         addCommand(t)
+
+
+def char_from_row(row: aiosqlite.Row):
+    return Character(*row[:14])
+
+
+async def get_characters(ctx):
+    chars = []
+    game = await getActiveGame(ctx)
+
+    try:
+        cursor = None
+        db = await aiosqlite.connect("data/Assets.db")
+        sql = [
+            f"""SELECT c.*
+                FROM char c
+                JOIN char_game_join cgj ON c.id = cgj.char
+                JOIN active_game ag ON cgj.game = ag.game
+                JOIN game g ON ag.game = g.id
+                WHERE guild =  ?""",
+            [ctx.guild.id],
+        ]
+        if ctx.author.id != game.gm:
+            sql[0] += " AND c.author = ?"
+            sql[1].append(str(ctx.author.id))
+
+        cursor = await db.execute(sql[0], sql[1])
+        for row in await cursor.fetchall():
+            chars.append(char_from_row(row))
+        await cursor.close()
+    except Exception as e:
+        await ctx.respond(error_text(e))
+    finally:
+        await db.close()
+
+    return chars
+
+
+async def get_single_character(ctx, zero_msg: str, choose_msg: str):
+    chars = await get_characters(ctx)
+    if len(chars) == 0:
+        raise Exception(zero_msg)
+    elif len(chars) == 1:
+        char = chars[0]
+    else:
+        char = await get_selector_input(ctx, choose_msg, chars)
+    return char
 
 
 ###################################
@@ -184,7 +262,7 @@ class CharCog(commands.Cog):
             cursor = await db.execute(
                 sql,
                 (
-                    str(ctx.author),
+                    ctx.author.id,
                     *[field.value for field in options],
                 ),
             )
