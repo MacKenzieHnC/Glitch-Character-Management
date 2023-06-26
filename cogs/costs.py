@@ -33,8 +33,7 @@ class SpendCog(commands.Cog):
             description=f"""Spend {stat.cost.lower()} to do magic""",
         )
         @discord.option("amount", description="Amount to spend", required=True)
-        async def spend(self, ctx, amount: int):
-            stat = Stat.ABILITY
+        async def spend(self, ctx, amount: int, stat=stat):
             try:
                 char = await get_single_character(
                     ctx,
@@ -43,10 +42,11 @@ class SpendCog(commands.Cog):
             except Exception as e:
                 await ctx.respond(error_text(e), ephemeral=True)
 
-            msg = f"""{char.name} spent {amount} {stat.cost}"""
+            msg = f"""{char.name} spent {amount} {stat.stat}"""
+            xp_msg = ""
             sql = f"""UPDATE char\nSET """
             if amount >= 5:
-                msg += " and gained 1xp!"
+                xp_msg += ", and gained 1xp!"
                 sql += "xp = xp + 1,\n"
             sql += f"""{stat.cost.lower()} = {stat.cost.lower()} + MAX({amount} - {stat.stat.lower()}, 0)\nWHERE id = {char.id}"""
 
@@ -57,6 +57,16 @@ class SpendCog(commands.Cog):
                     sql,
                 )
                 await db.commit()
+                cursor = await cursor.execute(
+                    f"SELECT {stat.stat.lower()}, {stat.cost.lower()} FROM char WHERE id = {char.id}"
+                )
+
+                stat_value, cost_value = await cursor.fetchone()
+                suffer = max(0, amount - stat_value)
+                if suffer > 0:
+                    msg += f", suffering {suffer} {stat.cost}"
+                msg += xp_msg + "!"
+                msg += f"\n{stat.cost} is now {cost_value}"
                 await ctx.respond(msg)
                 await cursor.close()
             except Exception as e:
