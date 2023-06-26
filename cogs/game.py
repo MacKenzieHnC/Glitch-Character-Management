@@ -31,7 +31,7 @@ async def get_guild_games(ctx):
                 games.append(Game(*row))
         await cursor.close()
     except Exception as e:
-        await ctx.respond(error_text(e))
+        await ctx.respond(error_text(e), ephemeral=True)
     finally:
         await db.close()
 
@@ -108,7 +108,7 @@ class GameCog(commands.Cog):
         name = await get_text_input(
             ctx, "New Game!", "Name (the name that will appear in menus)"
         )
-        gm = await get_user_selector_input(ctx, "And who will be the GM?")
+        gm = await get_user_selector_input(ctx, f"And who will be the GM for {name}?")
 
         # Add to db
         try:
@@ -118,9 +118,9 @@ class GameCog(commands.Cog):
                     VALUES("{ctx.guild.id}", "{gm}", "{name}")"""
             )
             await db.commit()
-            await ctx.respond(f"Successfully added {name} to db!!")
+            await ctx.respond(f"Successfully added {name} to db!!", ephemeral=True)
         except Exception as e:
-            await ctx.respond(error_text(e))
+            await ctx.respond(error_text(e), ephemeral=True)
         finally:
             if cursor:
                 await cursor.close()

@@ -149,7 +149,7 @@ def init_spend(bot):
                     choose_msg=f"What character will be spending {t.stat}?",
                 )
             except Exception as e:
-                await ctx.respond(error_text(e))
+                await ctx.respond(error_text(e), ephemeral=True)
 
             msg = f"""{char.name} spent {amount} {t.cost}"""
             sql = f"""UPDATE char\nSET """
@@ -168,7 +168,7 @@ def init_spend(bot):
                 await ctx.respond(msg)
                 await cursor.close()
             except Exception as e:
-                await ctx.respond(error_text(e))
+                await ctx.respond(error_text(e), ephemeral=True)
             finally:
                 await db.close()
 
@@ -205,7 +205,7 @@ async def get_characters(ctx):
             chars.append(char_from_row(row))
         await cursor.close()
     except Exception as e:
-        await ctx.respond(error_text(e))
+        await ctx.respond(error_text(e), ephemeral=True)
     finally:
         await db.close()
 
@@ -315,6 +315,6 @@ class CharCog(commands.Cog):
             await db.commit()
             await ctx.respond(content=f"{char[0].value} successfully updated!")
         except Exception as e:
-            await ctx.respond(error_text(e))
+            await ctx.respond(error_text(e), ephemeral=True)
         finally:
             await db.close()

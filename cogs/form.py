@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord.ext import pages
 
-from utils import error_text
+from utils import await_variable, error_text
 
 
 class Field:
@@ -86,10 +86,15 @@ async def get_form(ctx, options: dict[list[Field]], display_only=False):
                         content=error_text("Content contains invalid responses!")
                     )
 
-    paginator = pages.Paginator(
-        pages=page_list, custom_view=None if display_only else ButtonView()
-    )
-    await paginator.respond(ctx.interaction, ephemeral=False)
-    while len(response) == 0:
-        await asyncio.sleep(1)
-    return response[0]
+    buttons = None if display_only else ButtonView()
+    paginator = pages.Paginator(pages=page_list, custom_view=buttons)
+    await paginator.respond(ctx.interaction, ephemeral=True)
+    if buttons:
+        try:
+            await await_variable(ctx, response)
+            return response[0]
+        except Exception as e:
+            paginator.custom_view = None
+            await paginator.goto_page(paginator.current_page)
+            await ctx.respond(error_text(e), ephemeral=True)
+            raise Exception("Timeout")

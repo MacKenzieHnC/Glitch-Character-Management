@@ -3,6 +3,9 @@ from discord.ui import View, Select
 import asyncio
 
 
+DEFAULT_TIMEOUT = 1800
+
+
 def error_text(e):
     return f"`Error: {e}`"
 
@@ -41,12 +44,13 @@ async def get_text_input(ctx, title: str, labels: str | list[str]):
 
     modal = TextModal(title=title)
     await ctx.send_modal(modal)
-    while len(response) == 0:
-        await asyncio.sleep(1)
-    if len(response) == 1:
+    try:
+        await await_variable(ctx, response)
         return response[0]
-    else:
-        return response
+    except Exception as e:
+        await modal.on_timeout()
+        await ctx.respond(error_text("Timeout"), ephemeral=True)
+        raise Exception("Timeout")
 
 
 async def get_user_selector_input(ctx, message: str):
@@ -62,13 +66,15 @@ async def get_user_selector_input(ctx, message: str):
                     content=f"{select.values[0]} selected!", view=None, delete_after=0
                 )
 
-    await ctx.respond(
-        message,
-        view=UserSelector(),
-    )
-    while len(response) == 0:
-        await asyncio.sleep(1)
-    return response[0]
+    selector = UserSelector()
+    await ctx.respond(message, view=selector, ephemeral=True)
+
+    try:
+        await await_variable(ctx, response)
+        return response[0]
+    except Exception as e:
+        await selector.on_timeout()
+        raise Exception("Timeout")
 
 
 async def get_selector_input(ctx, message: str, options):
@@ -98,10 +104,19 @@ async def get_selector_input(ctx, message: str, options):
                     delete_after=0,
                 )
 
-    await ctx.respond(message, view=SelectorView())
-    while len(response) == 0:
-        await asyncio.sleep(1)
-    return response[0]
+        async def on_timeout(self):
+            self.disable_all_items()
+            await self.message.edit(content=error_text("Timeout"), view=self)
+
+    selector = SelectorView()
+    await ctx.respond(message, view=selector, ephemeral=True)
+
+    try:
+        await await_variable(ctx, response)
+        return response[0]
+    except Exception as e:
+        await selector.on_timeout()
+        raise Exception("Timeout")
 
 
 async def confirmation_button(ctx, message, confirm_method, cancel_method):
@@ -126,4 +141,12 @@ async def confirmation_button(ctx, message, confirm_method, cancel_method):
                     delete_after=0,
                 )
 
-    ctx.respond(message, view=ButtonView())
+    await ctx.respond(message, view=ButtonView(), ephemeral=True)
+
+
+async def await_variable(ctx, response: list, timeout=DEFAULT_TIMEOUT):
+    while len(response) == 0 and timeout > 0:
+        await asyncio.sleep(1)
+        timeout -= 1
+    if timeout == 0:
+        raise Exception("Timeout!")
