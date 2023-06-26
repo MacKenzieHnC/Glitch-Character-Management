@@ -1,10 +1,8 @@
 import aiosqlite
 from discord import SlashCommandGroup
-import discord
 from discord.ext import commands
 from cogs.form import Field, get_form
 from cogs.game import GameCog, get_guild_games, getActiveGame
-from enum import Enum
 
 from utils import (
     error_text,
@@ -12,18 +10,6 @@ from utils import (
     validate_int,
     validate_str,
 )
-
-
-class Stat(Enum):
-    def __init__(self, stat, cost):
-        self.stat = stat
-        self.cost = cost
-
-    EIDE = ("Eide", "Stillness")
-    FLORE = ("Flore", "Immersion")
-    LORE = ("Lore", "Fugue")
-    WYRD = ("Wyrd", "Burn")
-    ABILITY = ("Ability", "Wear")
 
 
 class Character:
@@ -133,47 +119,6 @@ def to_dict(char: Character):
             ]
         ],
     }
-
-
-def init_spend(bot):
-    def addCommand(t: Stat):
-        @bot.slash_command(
-            name=t.stat.lower(),
-            description=f"""Spend {t.cost.lower()} to do magic""",
-        )
-        @discord.option("amount", description="Amount to spend", required=True)
-        async def _spend(ctx, amount: int):
-            try:
-                char = await get_single_character(
-                    ctx,
-                    choose_msg=f"What character will be spending {t.stat}?",
-                )
-            except Exception as e:
-                await ctx.respond(error_text(e), ephemeral=True)
-
-            msg = f"""{char.name} spent {amount} {t.cost}"""
-            sql = f"""UPDATE char\nSET """
-            if amount >= 5:
-                msg += " and gained 1xp!"
-                sql += "xp = xp + 1,\n"
-            sql += f"""{t.cost.lower()} = {t.cost.lower()} + MAX({amount} - {t.stat.lower()}, 0)\nWHERE id = {char.id}"""
-
-            try:
-                cursor = None
-                db = await aiosqlite.connect("data/Assets.db")
-                cursor = await db.execute(
-                    sql,
-                )
-                await db.commit()
-                await ctx.respond(msg)
-                await cursor.close()
-            except Exception as e:
-                await ctx.respond(error_text(e), ephemeral=True)
-            finally:
-                await db.close()
-
-    for t in Stat:
-        addCommand(t)
 
 
 def char_from_row(row: aiosqlite.Row):
