@@ -46,7 +46,7 @@ class SpendCog(commands.Cog):
             xp_msg = ""
             sql = f"""UPDATE char\nSET """
             if amount >= 5:
-                xp_msg += ", and gained 1xp!"
+                xp_msg += ", and gained 1xp"
                 sql += "xp = xp + 1,\n"
             sql += f"""{stat.cost.lower()} = {stat.cost.lower()} + MAX({amount} - {stat.stat.lower()}, 0)\nWHERE id = {char.id}"""
 
