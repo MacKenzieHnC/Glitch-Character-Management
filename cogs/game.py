@@ -128,18 +128,22 @@ class GameCog(commands.Cog):
             await db.close()
 
     @game_commands.command(name="get_active", description="Display the active game")
-    @commands.is_owner()
     async def getActive(self, ctx):
-        game = await getActiveGame(ctx)
-        await ctx.respond(f"""Currently active game is "{game.name}"!""")
+        if ctx.author.id == ctx.guild.owner_id:
+            game = await getActiveGame(ctx)
+            await ctx.respond(f"""Currently active game is "{game.name}"!""")
+        else:
+            await error(ctx, "Only the server owner can invoke this command!")
 
     @game_commands.command(name="set_active", description="Change the active game")
-    @commands.is_owner()
     async def setActive(self, ctx):
-        game: GameCog = await get_selector_input(
-            ctx,
-            "What game will be active?",
-            await get_guild_games(ctx),
-        )
+        if ctx.author.id == ctx.guild.owner_id:
+            game: GameCog = await get_selector_input(
+                ctx,
+                "What game will be active?",
+                await get_guild_games(ctx),
+            )
 
-        await setActiveGame(ctx, game)
+            await setActiveGame(ctx, game)
+        else:
+            await error(ctx, "Only the server owner can invoke this command!")
