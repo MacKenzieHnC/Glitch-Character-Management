@@ -5,7 +5,7 @@ from cogs.form import Field, get_form
 from cogs.game import GameCog, get_guild_games, getActiveGame
 
 from utils import (
-    error_text,
+    error,
     get_selector_input,
     validate_int,
     validate_str,
@@ -150,7 +150,7 @@ async def get_characters(ctx):
             chars.append(char_from_row(row))
         await cursor.close()
     except Exception as e:
-        await ctx.respond(error_text(e), ephemeral=True)
+        await error(ctx, e)
     finally:
         await db.close()
 
@@ -222,7 +222,7 @@ class CharCog(commands.Cog):
             await db.commit()
             await ctx.respond(content=f"{options[0].value} added to {game.name}!")
         except Exception as e:
-            await ctx.respond(error_text(e))
+            await error(ctx, e)
         finally:
             await db.close()
 
@@ -260,6 +260,6 @@ class CharCog(commands.Cog):
             await db.commit()
             await ctx.respond(content=f"{char[0].value} successfully updated!")
         except Exception as e:
-            await ctx.respond(error_text(e), ephemeral=True)
+            await error(ctx, e)
         finally:
             await db.close()

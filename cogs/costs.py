@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 from cogs.char import get_single_character
-from utils import error_text
+from utils import error
 from enum import Enum
 
 
@@ -34,13 +34,10 @@ class SpendCog(commands.Cog):
         )
         @discord.option("amount", description="Amount to spend", required=True)
         async def spend(self, ctx, amount: int, stat=stat):
-            try:
-                char = await get_single_character(
-                    ctx,
-                    choose_msg=f"What character will be spending {stat.stat}?",
-                )
-            except Exception as e:
-                await ctx.respond(error_text(e), ephemeral=True)
+            char = await get_single_character(
+                ctx,
+                choose_msg=f"What character will be spending {stat.stat}?",
+            )
 
             msg = f"""{char.name} spent {amount} {stat.stat}"""
             xp_msg = ""
@@ -70,6 +67,6 @@ class SpendCog(commands.Cog):
                 await ctx.respond(msg)
                 await cursor.close()
             except Exception as e:
-                await ctx.respond(error_text(e), ephemeral=True)
+                await error(ctx, e)
             finally:
                 await db.close()

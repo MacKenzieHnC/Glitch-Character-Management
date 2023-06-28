@@ -1,13 +1,13 @@
 import discord
-from discord.ui import View, Select
 import asyncio
+from discord.ext.commands import Context
 
 
 DEFAULT_TIMEOUT = 1800
 
 
-def error_text(e):
-    return f"`Error: {e}`"
+async def error(ctx: Context, e: str):
+    await ctx.respond(f"`Error: {e}`", ephemeral=True)
 
 
 def validate_str(value: str):
@@ -49,7 +49,7 @@ async def get_text_input(ctx, title: str, labels: str | list[str]):
         return response[0]
     except Exception as e:
         await modal.on_timeout()
-        await ctx.respond(error_text("Timeout"), ephemeral=True)
+        await ctx.respond(f"`Error: Timeout`", ephemeral=True)
         raise Exception("Timeout")
 
 
@@ -106,7 +106,7 @@ async def get_selector_input(ctx, message: str, options):
 
         async def on_timeout(self):
             self.disable_all_items()
-            await self.message.edit(content=error_text("Timeout"), view=self)
+            await self.message.edit(content=(f"`Error: Timeout`"), view=self)
 
     selector = SelectorView()
     await ctx.respond(message, view=selector, ephemeral=True)

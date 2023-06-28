@@ -1,9 +1,10 @@
 import aiosqlite
 from discord import SlashCommandGroup
 from discord.ext import commands
+from discord.ext.commands import Context
 
 from utils import (
-    error_text,
+    error,
     get_selector_input,
     get_text_input,
     get_user_selector_input,
@@ -31,7 +32,7 @@ async def get_guild_games(ctx):
                 games.append(Game(*row))
         await cursor.close()
     except Exception as e:
-        await ctx.respond(error_text(e), ephemeral=True)
+        await error(ctx, e)
     finally:
         await db.close()
 
@@ -60,7 +61,7 @@ async def setActiveGame(ctx, game: Game):
         await db.commit()
         await ctx.respond(f"""Active game changed to "{game.name}"!""")
     except Exception as e:
-        await ctx.respond(error_text(e))
+        await error(ctx, e)
     finally:
         if cursor:
             await cursor.close()
@@ -82,7 +83,7 @@ async def getActiveGame(ctx):
         async for row in cursor:
             games.append(Game(*row))
     except Exception as e:
-        await ctx.respond(error_text(e))
+        await error(ctx, e)
     finally:
         if cursor:
             await cursor.close()
@@ -120,7 +121,7 @@ class GameCog(commands.Cog):
             await db.commit()
             await ctx.respond(f"Successfully added {name} to db!!", ephemeral=True)
         except Exception as e:
-            await ctx.respond(error_text(e), ephemeral=True)
+            await error(ctx, e)
         finally:
             if cursor:
                 await cursor.close()
