@@ -32,34 +32,9 @@ DEFAULT_CHAR = {
     "author": 0,
     "Name": "",
     "XP": 0,
-    "Eide": 0,
-    "Flore": 0,
-    "Lore": 0,
-    "Wyrd": 0,
-    "Ability": 0,
-    "Stillness": 0,
-    "Immersion": 0,
-    "Fugue": 0,
-    "Burn": 0,
-    "Wear": 0,
+    **{stat.stat: 0 for stat in Stat},
+    **{stat.cost: 0 for stat in Stat},
 }
-
-CHAR_KEYS = [
-    "id",
-    "author",
-    "Name",
-    "XP",
-    "Eide",
-    "Flore",
-    "Lore",
-    "Wyrd",
-    "Ability",
-    "Stillness",
-    "Immersion",
-    "Fugue",
-    "Burn",
-    "Wear",
-]
 
 
 def to_dict(char: dict):
@@ -74,7 +49,7 @@ def to_dict(char: dict):
 
 
 def char_from_row(row: Row):
-    return {k: row[k.lower()] for k in CHAR_KEYS}
+    return {k: row[k.lower()] for k in DEFAULT_CHAR.keys()}
 
 
 async def get_characters(ctx: Context):
