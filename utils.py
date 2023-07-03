@@ -58,12 +58,16 @@ async def get_user_selector_input(ctx, message: str):
 
     class UserSelector(discord.ui.View):
         @discord.ui.select(select_type=discord.ComponentType.user_select)
-        async def select_callback(self, select, interaction):
+        async def select_callback(
+            self, select: discord.ui.Select, interaction: discord.Interaction
+        ):
             if interaction.user.id == ctx.author.id:
-                response.append(select.values[0])
+                response.append(select.values[0].id)
                 select.disabled = True
                 await interaction.response.edit_message(
-                    content=f"{select.values[0]} selected!", view=None, delete_after=0
+                    content=f"{select.values[0].name} selected!",
+                    view=None,
+                    delete_after=0,
                 )
 
     selector = UserSelector()
