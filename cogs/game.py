@@ -88,6 +88,9 @@ async def getActiveGame(ctx: Context):
             await cursor.close()
         await db.close()
 
+    if len(games) < 1:
+        await error(ctx, "No active game!")
+
     return games[0]
 
 
