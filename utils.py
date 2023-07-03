@@ -1,6 +1,7 @@
 import discord
 import asyncio
 from discord.ext.commands import Context
+from discord import Interaction
 
 
 DEFAULT_TIMEOUT = 1800
@@ -22,7 +23,7 @@ def validate_int(value: str):
         return False
 
 
-async def get_text_input(ctx, title: str, labels: str | list[str]):
+async def get_text_input(ctx: Context, title: str, labels: str | list[str]):
     response: list[str] = []
 
     class TextModal(discord.ui.Modal):
@@ -34,7 +35,7 @@ async def get_text_input(ctx, title: str, labels: str | list[str]):
                 for label in labels:
                     self.add_item(discord.ui.InputText(label=label))
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             if interaction.user.id == ctx.author.id:
                 for child in self.children:
                     response.append(child.value)
@@ -53,13 +54,13 @@ async def get_text_input(ctx, title: str, labels: str | list[str]):
         raise Exception("Timeout")
 
 
-async def get_user_selector_input(ctx, message: str):
+async def get_user_selector_input(ctx: Context, message: str):
     response = []
 
     class UserSelector(discord.ui.View):
         @discord.ui.select(select_type=discord.ComponentType.user_select)
         async def select_callback(
-            self, select: discord.ui.Select, interaction: discord.Interaction
+            self, select: discord.ui.Select, interaction: Interaction
         ):
             if interaction.user.id == ctx.author.id:
                 response.append(select.values[0].id)
@@ -81,7 +82,7 @@ async def get_user_selector_input(ctx, message: str):
         raise Exception("Timeout")
 
 
-async def get_selector_input(ctx, message: str, options):
+async def get_selector_input(ctx: Context, message: str, options):
     response = []
 
     class SelectorView(discord.ui.View):
@@ -97,7 +98,7 @@ async def get_selector_input(ctx, message: str, options):
             ],
         )
         async def select_callback(
-            self, select, interaction
+            self, select, interaction: Interaction
         ):  # the function called when the user is done selecting options
             if interaction.user.id == ctx.author.id:
                 response.append(options[int(select.values[0])])
@@ -123,10 +124,10 @@ async def get_selector_input(ctx, message: str, options):
         raise Exception("Timeout")
 
 
-async def confirmation_button(ctx, message, confirm_method, cancel_method):
+async def confirmation_button(ctx: Context, message, confirm_method, cancel_method):
     class ButtonView(discord.ui.View):
         @discord.ui.button(label="CANCEL", style=discord.ButtonStyle.red, row=2)
-        async def submit_button_callback(self, button, interaction):
+        async def submit_button_callback(self, button, interaction: Interaction):
             if interaction.user.id == ctx.author.id:
                 await cancel_method()
                 await interaction.response.edit_message(
@@ -136,7 +137,7 @@ async def confirmation_button(ctx, message, confirm_method, cancel_method):
                 )
 
         @discord.ui.button(label="OKAY", style=discord.ButtonStyle.green, row=2)
-        async def submit_button_callback(self, button, interaction):
+        async def submit_button_callback(self, button, interaction: Interaction):
             if interaction.user.id == ctx.author.id:
                 await confirm_method()
                 await interaction.response.edit_message(
@@ -148,7 +149,7 @@ async def confirmation_button(ctx, message, confirm_method, cancel_method):
     await ctx.respond(message, view=ButtonView(), ephemeral=True)
 
 
-async def await_variable(ctx, response: list, timeout=DEFAULT_TIMEOUT):
+async def await_variable(ctx: Context, response: list, timeout=DEFAULT_TIMEOUT):
     while len(response) == 0 and timeout > 0:
         await asyncio.sleep(1)
         timeout -= 1

@@ -1,7 +1,6 @@
-import asyncio
-
 import discord
 from discord.ext import pages
+from discord.ext.commands import Context
 
 from utils import await_variable, error
 
@@ -16,7 +15,7 @@ class Field:
         return self.validate(self.value)
 
 
-async def get_form(ctx, options: dict[list[Field]], display_only=False):
+async def get_form(ctx: Context, options: dict[list[Field]], display_only=False):
     response = []
     # Initialize pages
     page_list: list[discord.Embed] = []
@@ -29,7 +28,7 @@ async def get_form(ctx, options: dict[list[Field]], display_only=False):
     # The View containing the edit button
     class ButtonView(discord.ui.View):
         @discord.ui.button(label="EDIT", style=discord.ButtonStyle.primary, row=2)
-        async def edit_button_callback(self, button, interaction):
+        async def edit_button_callback(self, button, interaction: discord.Interaction):
             if interaction.user.id == ctx.author.id:
                 fields = options[list(options.keys())[paginator.current_page]]
 
@@ -64,7 +63,9 @@ async def get_form(ctx, options: dict[list[Field]], display_only=False):
                 await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="SUBMIT", style=discord.ButtonStyle.green, row=2)
-        async def submit_button_callback(self, button, interaction):
+        async def submit_button_callback(
+            self, button, interaction: discord.Interaction
+        ):
             if interaction.user.id == ctx.author.id:
                 valid = True
                 for key in list(options.keys()):

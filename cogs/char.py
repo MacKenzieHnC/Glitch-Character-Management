@@ -1,6 +1,7 @@
 import aiosqlite
 from discord import SlashCommandGroup
 from discord.ext import commands
+from discord.ext.commands import Context
 from cogs.form import Field, get_form
 from cogs.game import GameCog, get_guild_games, getActiveGame
 
@@ -125,7 +126,7 @@ def char_from_row(row: aiosqlite.Row):
     return Character(*row[:14])
 
 
-async def get_characters(ctx):
+async def get_characters(ctx: Context):
     chars = []
     game = await getActiveGame(ctx)
 
@@ -157,7 +158,7 @@ async def get_characters(ctx):
     return chars
 
 
-async def get_single_character(ctx, choose_msg: str):
+async def get_single_character(ctx: Context, choose_msg: str):
     chars = await get_characters(ctx)
     if len(chars) == 0:
         raise Exception(
@@ -182,7 +183,7 @@ class CharCog(commands.Cog):
     char_commands = SlashCommandGroup("char", "Commands for characters")
 
     @char_commands.command(name="add", description="Add a character")
-    async def addChar(self, ctx):
+    async def addChar(self, ctx: Context):
         game: GameCog = await get_selector_input(
             ctx,
             "What game will this character belong to?",
@@ -227,14 +228,14 @@ class CharCog(commands.Cog):
             await db.close()
 
     @char_commands.command(name="display", description="Display character sheet")
-    async def displayChar(self, ctx):
+    async def displayChar(self, ctx: Context):
         char = to_dict(
             await get_single_character(ctx, "What character would you like to display?")
         )
         await get_form(ctx, char, display_only=True)
 
     @char_commands.command(name="edit", description="Edit character sheet")
-    async def displayChar(self, ctx):
+    async def displayChar(self, ctx: Context):
         char = await get_single_character(
             ctx, "What character would you like to display?"
         )

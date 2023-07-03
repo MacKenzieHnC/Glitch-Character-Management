@@ -18,7 +18,7 @@ class Game:
         self.name = name
 
 
-async def get_guild_games(ctx):
+async def get_guild_games(ctx: Context):
     games: list[Game] = []
     try:
         db = await aiosqlite.connect("data/Assets.db")
@@ -39,7 +39,7 @@ async def get_guild_games(ctx):
     return games
 
 
-async def setActiveGame(ctx, game: Game):
+async def setActiveGame(ctx: Context, game: Game):
     try:
         db = await aiosqlite.connect("data/Assets.db")
         # Remove all currently active games (should only be 0 or 1 tho)
@@ -68,7 +68,7 @@ async def setActiveGame(ctx, game: Game):
         await db.close()
 
 
-async def getActiveGame(ctx):
+async def getActiveGame(ctx: Context):
     games: list[Game] = []
     try:
         cursor = None
@@ -104,7 +104,7 @@ class GameCog(commands.Cog):
     game_commands = SlashCommandGroup("game", "Commands for games")
 
     @game_commands.command(name="add", description="Add a new game to this server")
-    async def addGame(self, ctx):
+    async def addGame(self, ctx: Context):
         # Get game data
         name = await get_text_input(
             ctx, "New Game!", "Name (the name that will appear in menus)"
@@ -128,7 +128,7 @@ class GameCog(commands.Cog):
             await db.close()
 
     @game_commands.command(name="get_active", description="Display the active game")
-    async def getActive(self, ctx):
+    async def getActive(self, ctx: Context):
         if ctx.author.id == ctx.guild.owner_id:
             game = await getActiveGame(ctx)
             await ctx.respond(f"""Currently active game is "{game.name}"!""")
@@ -136,7 +136,7 @@ class GameCog(commands.Cog):
             await error(ctx, "Only the server owner can invoke this command!")
 
     @game_commands.command(name="set_active", description="Change the active game")
-    async def setActive(self, ctx):
+    async def setActive(self, ctx: Context):
         if ctx.author.id == ctx.guild.owner_id:
             game: GameCog = await get_selector_input(
                 ctx,

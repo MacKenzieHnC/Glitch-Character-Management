@@ -2,6 +2,7 @@ import aiosqlite
 from discord import SlashCommandGroup
 import discord
 from discord.ext import commands
+from discord.ext.commands import Context
 
 from cogs.char import get_single_character
 from utils import error
@@ -33,7 +34,7 @@ class SpendCog(commands.Cog):
             description=f"""Spend {stat.cost.lower()} to do magic""",
         )
         @discord.option("amount", description="Amount to spend", required=True)
-        async def spend(self, ctx, amount: int, stat=stat):
+        async def spend(self, ctx: Context, amount: int, stat=stat):
             char = await get_single_character(
                 ctx,
                 choose_msg=f"What character will be spending {stat.stat}?",
