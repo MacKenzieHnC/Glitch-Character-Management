@@ -3,22 +3,10 @@ from discord import SlashCommandGroup
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
+from cogs.char import Stat
 
 from cogs.char import get_single_character
 from utils import error
-from enum import Enum
-
-
-class Stat(Enum):
-    def __init__(self, stat, cost):
-        self.stat = stat
-        self.cost = cost
-
-    EIDE = ("Eide", "Stillness")
-    FLORE = ("Flore", "Immersion")
-    LORE = ("Lore", "Fugue")
-    WYRD = ("Wyrd", "Burn")
-    ABILITY = ("Ability", "Wear")
 
 
 class SpendCog(commands.Cog):
@@ -40,13 +28,13 @@ class SpendCog(commands.Cog):
                 choose_msg=f"What character will be spending {stat.stat}?",
             )
 
-            msg = f"""{char.name} spent {amount} {stat.stat}"""
+            msg = f"""{char['Name']} spent {amount} {stat.stat}"""
             xp_msg = ""
             sql = f"""UPDATE char\nSET """
             if amount >= 5:
                 xp_msg += ", and gained 1xp"
                 sql += "xp = xp + 1,\n"
-            sql += f"""{stat.cost.lower()} = {stat.cost.lower()} + MAX({amount} - {stat.stat.lower()}, 0)\nWHERE id = {char.id}"""
+            sql += f"""{stat.cost.lower()} = {stat.cost.lower()} + MAX({amount} - {stat.stat.lower()}, 0)\nWHERE id = {char['id']}"""
 
             try:
                 cursor = None
@@ -56,7 +44,7 @@ class SpendCog(commands.Cog):
                 )
                 await db.commit()
                 cursor = await cursor.execute(
-                    f"SELECT {stat.stat.lower()}, {stat.cost.lower()} FROM char WHERE id = {char.id}"
+                    f"SELECT {stat.stat.lower()}, {stat.cost.lower()} FROM char WHERE id = {char['id']}"
                 )
 
                 stat_value, cost_value = await cursor.fetchone()

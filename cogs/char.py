@@ -1,129 +1,80 @@
-import aiosqlite
+from aiosqlite import Row
 from discord import SlashCommandGroup
 from discord.ext import commands
 from discord.ext.commands import Context
 from cogs.form import Field, get_form
 from cogs.game import GameCog, get_guild_games, getActiveGame
+from enum import Enum
 
 from utils import (
     error,
+    get_db_connection,
     get_selector_input,
     validate_int,
     validate_str,
 )
 
 
-class Character:
-    def __init__(
-        # discord access
-        self,
-        id,
-        author,
-        name,
-        # stats
-        xp,
-        eide,
-        flore,
-        lore,
-        wyrd,
-        ability,
-        # cost pools
-        stillness,
-        immersion,
-        fugue,
-        burn,
-        wear
-        # # flavor
-        # discipline,
-        # sphere,
-        # technique,
-        # sanctuary,
-        # destruction,
-        # bonds,
-        # geasa,
-        # gifts,
-        # treasures,
-        # arcana,
-        # levers,
-        # quests,
-    ):
-        self.id = id
-        self.author = author
-        self.name = name
-        self.xp = xp
-        self.eide = eide
-        self.flore = flore
-        self.lore = lore
-        self.wyrd = wyrd
-        self.ability = ability
-        self.stillness = stillness
-        self.immersion = immersion
-        self.fugue = fugue
-        self.burn = burn
-        self.wear = wear
-        # self.discipline = discipline
-        # self.sphere = sphere
-        # self.technique = technique
-        # self.sanctuary = sanctuary
-        # self.destruction = destruction
-        # self.bonds = bonds
-        # self.geasa = geasa
-        # self.gifts = gifts
-        # self.treasures = treasures
-        # self.arcana = arcana
-        # self.levers = levers
-        # self.quests = quests
+class Stat(Enum):
+    def __init__(self, stat, cost):
+        self.stat = stat
+        self.cost = cost
+
+    EIDE = ("Eide", "Stillness")
+    FLORE = ("Flore", "Immersion")
+    LORE = ("Lore", "Fugue")
+    WYRD = ("Wyrd", "Burn")
+    ABILITY = ("Ability", "Wear")
 
 
-DEFAULT_CHAR = Character(
-    id=0,
-    author="No One",
-    name="",
-    xp=0,
-    eide=0,
-    flore=0,
-    lore=0,
-    wyrd=0,
-    ability=0,
-    stillness=0,
-    immersion=0,
-    fugue=0,
-    burn=0,
-    wear=0,
-)
+DEFAULT_CHAR = {
+    "id": -1,
+    "author": 0,
+    "Name": "",
+    "XP": 0,
+    "Eide": 0,
+    "Flore": 0,
+    "Lore": 0,
+    "Wyrd": 0,
+    "Ability": 0,
+    "Stillness": 0,
+    "Immersion": 0,
+    "Fugue": 0,
+    "Burn": 0,
+    "Wear": 0,
+}
+
+CHAR_KEYS = [
+    "id",
+    "author",
+    "Name",
+    "XP",
+    "Eide",
+    "Flore",
+    "Lore",
+    "Wyrd",
+    "Ability",
+    "Stillness",
+    "Immersion",
+    "Fugue",
+    "Burn",
+    "Wear",
+]
 
 
-def to_dict(char: Character):
+def to_dict(char: dict):
     return {
         "Name": [
-            Field("Name", char.name, validate_str),
-            Field("XP", char.xp, validate_int),
+            Field("Name", char["Name"], validate_str),
+            Field("XP", char["XP"], validate_int),
         ],
-        "Stats": [
-            Field(stat[0], stat[1], validate_int)
-            for stat in [
-                ("Eide", char.eide),
-                ("Lore", char.lore),
-                ("Flore", char.flore),
-                ("Wyrd", char.wyrd),
-                ("Ability", char.ability),
-            ]
-        ],
-        "Costs": [
-            Field(cost[0], cost[1], validate_int)
-            for cost in [
-                ("Stillness", char.stillness),
-                ("Immersion", char.immersion),
-                ("Fugue", char.fugue),
-                ("Burn", char.burn),
-                ("Wear", char.wear),
-            ]
-        ],
+        "Stats": [Field(stat.stat, char[stat.stat], validate_int) for stat in Stat],
+        "Costs": [Field(stat.cost, char[stat.cost], validate_int) for stat in Stat],
     }
 
 
-def char_from_row(row: aiosqlite.Row):
-    return Character(*row[:14])
+def char_from_row(row: Row):
+    return {k: row[k.lower()] for k in CHAR_KEYS}
 
 
 async def get_characters(ctx: Context):
@@ -132,7 +83,7 @@ async def get_characters(ctx: Context):
 
     try:
         cursor = None
-        db = await aiosqlite.connect("data/Assets.db")
+        db = await get_db_connection()
         sql = [
             f"""SELECT c.*
                 FROM char c
@@ -142,12 +93,14 @@ async def get_characters(ctx: Context):
                 WHERE guild =  ?""",
             [ctx.guild.id],
         ]
-        if ctx.author.id != game.gm:
+        if ctx.author.id != game["GM"]:
             sql[0] += " AND c.author = ?"
             sql[1].append(str(ctx.author.id))
 
         cursor = await db.execute(sql[0], sql[1])
-        for row in await cursor.fetchall():
+
+        rows = await cursor.fetchall()
+        for row in rows:
             chars.append(char_from_row(row))
         await cursor.close()
     except Exception as e:
@@ -205,7 +158,7 @@ class CharCog(commands.Cog):
         sql += ")"
 
         try:
-            db = await aiosqlite.connect("data/Assets.db")
+            db = await get_db_connection()
             cursor = await db.execute(
                 sql,
                 (
@@ -217,11 +170,11 @@ class CharCog(commands.Cog):
             await cursor.execute(
                 """INSERT INTO char_game_join (char, game)
                                     VALUES(?, ?)""",
-                (char_id, game.id),
+                (char_id, game["id"]),
             )
             await cursor.close()
             await db.commit()
-            await ctx.respond(content=f"{options[0].value} added to {game.name}!")
+            await ctx.respond(content=f"{options[0].value} added to {game['Name']}!")
         except Exception as e:
             await error(ctx, e)
         finally:
@@ -239,7 +192,7 @@ class CharCog(commands.Cog):
         char = await get_single_character(
             ctx, "What character would you like to display?"
         )
-        id = char.id
+        id = char["id"]
 
         char = await get_form(ctx, to_dict(char), display_only=False)
 
@@ -252,7 +205,7 @@ class CharCog(commands.Cog):
         sql += "\nWHERE id = ?"
 
         try:
-            db = await aiosqlite.connect("data/Assets.db")
+            db = await get_db_connection()
             cursor = await db.execute(
                 sql,
                 [*[field.value for field in char], id],

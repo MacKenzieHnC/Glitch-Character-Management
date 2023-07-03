@@ -1,3 +1,4 @@
+import aiosqlite
 import discord
 import asyncio
 from discord.ext.commands import Context
@@ -21,6 +22,12 @@ def validate_int(value: str):
         return True
     except ValueError:
         return False
+
+
+async def get_db_connection():
+    db = await aiosqlite.connect("data/Assets.db")
+    db.row_factory = aiosqlite.Row
+    return db
 
 
 async def get_text_input(ctx: Context, title: str, labels: str | list[str]):
@@ -92,7 +99,7 @@ async def get_selector_input(ctx: Context, message: str, options):
             max_values=1,  # the maximum number of values that can be selected by the users
             options=[
                 discord.SelectOption(
-                    label=str(i) + ": " + options[i].name, value=str(i)
+                    label=str(i) + ": " + options[i]["Name"], value=str(i)
                 )
                 for i in range(len(options))
             ],
@@ -104,7 +111,7 @@ async def get_selector_input(ctx: Context, message: str, options):
                 response.append(options[int(select.values[0])])
                 select.disabled = True
                 await interaction.response.edit_message(
-                    content=f"{options[int(select.values[0])].name} selected!",
+                    content=f"{options[int(select.values[0])]['Name']} selected!",
                     view=None,
                     delete_after=0,
                 )

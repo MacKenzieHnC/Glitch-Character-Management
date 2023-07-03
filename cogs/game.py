@@ -1,35 +1,35 @@
-import aiosqlite
+from aiosqlite import Row
 from discord import SlashCommandGroup
 from discord.ext import commands
 from discord.ext.commands import Context
 
 from utils import (
     error,
+    get_db_connection,
     get_selector_input,
     get_text_input,
     get_user_selector_input,
 )
 
+GAME_KEYS = ["id", "GM", "Name"]
 
-class Game:
-    def __init__(self, id: int, gm: int, name: str):
-        self.id = id
-        self.gm = gm
-        self.name = name
+
+def game_from_row(row: Row):
+    return {k: row[k.lower()] for k in GAME_KEYS}
 
 
 async def get_guild_games(ctx: Context):
-    games: list[Game] = []
+    games: list[dict] = []
     try:
-        db = await aiosqlite.connect("data/Assets.db")
+        db = await get_db_connection()
         async with db.execute(
-            f"""SELECT id, gm, name
-                                    FROM game
-                                    WHERE guild = ?""",
+            f"""SELECT *
+                FROM game
+                WHERE guild = ?""",
             [ctx.guild.id],
         ) as cursor:
             async for row in cursor:
-                games.append(Game(*row))
+                games.append(game_from_row(row))
         await cursor.close()
     except Exception as e:
         await error(ctx, e)
@@ -39,9 +39,9 @@ async def get_guild_games(ctx: Context):
     return games
 
 
-async def setActiveGame(ctx: Context, game: Game):
+async def setActiveGame(ctx: Context, game: dict):
     try:
-        db = await aiosqlite.connect("data/Assets.db")
+        db = await get_db_connection()
         # Remove all currently active games (should only be 0 or 1 tho)
         cursor = await db.execute(
             f"""DELETE
@@ -56,10 +56,10 @@ async def setActiveGame(ctx: Context, game: Game):
         await cursor.execute(
             f"""INSERT INTO active_game (game)
                         VALUES(?)""",
-            [game.id],
+            [game["id"]],
         )
         await db.commit()
-        await ctx.respond(f"""Active game changed to "{game.name}"!""")
+        await ctx.respond(f"""Active game changed to "{game['Name']}"!""")
     except Exception as e:
         await error(ctx, e)
     finally:
@@ -69,10 +69,10 @@ async def setActiveGame(ctx: Context, game: Game):
 
 
 async def getActiveGame(ctx: Context):
-    games: list[Game] = []
+    games: list[dict] = []
     try:
         cursor = None
-        db = await aiosqlite.connect("data/Assets.db")
+        db = await get_db_connection()
         cursor = await db.execute(
             f"""SELECT id, gm, name
                 FROM active_game ag
@@ -81,7 +81,7 @@ async def getActiveGame(ctx: Context):
             [ctx.guild.id],
         )
         async for row in cursor:
-            games.append(Game(*row))
+            games.append(game_from_row(row))
     except Exception as e:
         await error(ctx, e)
     finally:
@@ -113,7 +113,7 @@ class GameCog(commands.Cog):
 
         # Add to db
         try:
-            db = await aiosqlite.connect("data/Assets.db")
+            db = await get_db_connection()
             cursor = await db.execute(
                 f"""INSERT INTO game (guild, gm, name)
                     VALUES("{ctx.guild.id}", "{gm}", "{name}")"""
@@ -131,7 +131,7 @@ class GameCog(commands.Cog):
     async def getActive(self, ctx: Context):
         if ctx.author.id == ctx.guild.owner_id:
             game = await getActiveGame(ctx)
-            await ctx.respond(f"""Currently active game is "{game.name}"!""")
+            await ctx.respond(f"""Currently active game is "{game['Name']}"!""")
         else:
             await error(ctx, "Only the server owner can invoke this command!")
 
