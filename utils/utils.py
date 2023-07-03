@@ -3,7 +3,7 @@ from discord.ext.commands import Context
 
 
 async def error(ctx: Context, e: str):
-    await ctx.respond(f"`Error: {e}`", ephemeral=True)
+    await ctx.respond(f"`Error: {e}`")
 
 
 def validate_str(value: str):
