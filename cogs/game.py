@@ -2,14 +2,13 @@ from aiosqlite import Row
 from discord import SlashCommandGroup
 from discord.ext import commands
 from discord.ext.commands import Context
-
-from utils import (
-    error,
-    get_db_connection,
+from utils.ui_shortcuts import (
     get_selector_input,
     get_text_input,
     get_user_selector_input,
 )
+
+from utils.utils import error, get_db_connection
 
 GAME_KEYS = ["id", "GM", "Name"]
 

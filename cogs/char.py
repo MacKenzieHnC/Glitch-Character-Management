@@ -2,17 +2,11 @@ from aiosqlite import Row
 from discord import SlashCommandGroup
 from discord.ext import commands
 from discord.ext.commands import Context
-from cogs.form import Field, get_form
 from cogs.game import GameCog, get_guild_games, getActiveGame
 from enum import Enum
-
-from utils import (
-    error,
-    get_db_connection,
-    get_selector_input,
-    validate_int,
-    validate_str,
-)
+from utils.ui_shortcuts import get_selector_input
+from utils.ui_shortcuts import Field, get_form
+from utils.utils import get_db_connection, validate_int, validate_str, error
 
 
 class Stat(Enum):

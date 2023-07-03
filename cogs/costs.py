@@ -6,7 +6,7 @@ from discord.ext.commands import Context
 from cogs.char import Stat
 
 from cogs.char import get_single_character
-from utils import error
+from utils.utils import error
 
 
 class SpendCog(commands.Cog):
