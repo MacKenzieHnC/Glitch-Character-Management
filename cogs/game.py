@@ -12,7 +12,7 @@ from utils import (
 
 
 class Game:
-    def __init__(self, id, gm, name):
+    def __init__(self, id: int, gm: int, name: str):
         self.id = id
         self.gm = gm
         self.name = name
