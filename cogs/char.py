@@ -6,7 +6,7 @@ from cogs.game import GameCog, get_guild_games, getActiveGame
 from enum import Enum
 from utils.ui_shortcuts import get_selector_input
 from utils.ui_shortcuts import Field, get_form
-from utils.utils import get_db_connection, validate_int, validate_str, error
+from utils.utils import db_call, get_db_connection, validate_int, validate_str, error
 
 
 class Stat(Enum):
@@ -47,46 +47,33 @@ def char_from_row(row: Row):
 
 
 async def get_characters(ctx: Context):
-    chars = []
     game = await getActiveGame(ctx)
 
-    try:
-        cursor = None
-        db = await get_db_connection()
-        sql = [
-            f"""SELECT c.*
+    @db_call
+    async def select(ctx):
+        sql = {
+            "sql": f"""SELECT c.*
                 FROM char c
                 JOIN char_game_join cgj ON c.id = cgj.char
                 JOIN active_game ag ON cgj.game = ag.game
                 JOIN game g ON ag.game = g.id
                 WHERE guild =  ?""",
-            [ctx.guild.id],
-        ]
+            "params": [ctx.guild.id],
+        }
         if ctx.author.id != game["GM"]:
-            sql[0] += " AND c.author = ?"
-            sql[1].append(str(ctx.author.id))
+            sql["sql"] += " AND c.author = ?"
+            sql["params"].append(str(ctx.author.id))
+        return [sql]
 
-        cursor = await db.execute(sql[0], sql[1])
-
-        rows = await cursor.fetchall()
-        for row in rows:
-            chars.append(char_from_row(row))
-        await cursor.close()
-    except Exception as e:
-        await error(ctx, e)
-    finally:
-        await db.close()
-
+    chars: list[dict] = [char_from_row(row) for row in (await select(ctx))]
+    if len(chars) < 1:
+        await error(ctx, f"No characters in {game['Name']}!")
     return chars
 
 
 async def get_single_character(ctx: Context, choose_msg: str):
     chars = await get_characters(ctx)
-    if len(chars) == 0:
-        raise Exception(
-            "You have no characters in this game yet!",
-        )
-    elif len(chars) == 1:
+    if len(chars) == 1:
         char = chars[0]
     else:
         char = await get_selector_input(ctx, choose_msg, chars)
@@ -113,41 +100,31 @@ class CharCog(commands.Cog):
         )
 
         options = to_dict(DEFAULT_CHAR)
-
         options: dict[list[Field]] = await get_form(ctx, options)
-
         options = [field for key in list(options.keys()) for field in options[key]]
 
-        sql = "INSERT INTO char (author"
-        for field in options:
-            sql += ",\n\t" + field.label.lower()
-        sql += ")\nVALUES(?"
-        for field in options:
-            sql += ", ?"
-        sql += ")"
+        @db_call
+        async def insert(ctx):
+            return [
+                {
+                    "sql": ", ".join(
+                        [
+                            "INSERT INTO char (author",
+                            *[field.label.lower() for field in options],
+                        ]
+                    )
+                    + (", ".join([")\nVALUES(?", *["?" for field in options]]) + ")"),
+                    "params": [ctx.author.id, *[field.value for field in options]],
+                },
+                {
+                    "sql": """INSERT INTO char_game_join (char, game)
+                                    VALUES(last_insert_rowid(), ?)""",
+                    "params": [game["id"]],
+                },
+            ]
 
-        try:
-            db = await get_db_connection()
-            cursor = await db.execute(
-                sql,
-                (
-                    ctx.author.id,
-                    *[field.value for field in options],
-                ),
-            )
-            char_id = cursor.lastrowid
-            await cursor.execute(
-                """INSERT INTO char_game_join (char, game)
-                                    VALUES(?, ?)""",
-                (char_id, game["id"]),
-            )
-            await cursor.close()
-            await db.commit()
-            await ctx.respond(content=f"{options[0].value} added to {game['Name']}!")
-        except Exception as e:
-            await error(ctx, e)
-        finally:
-            await db.close()
+        await insert(ctx)
+        await ctx.respond(content=f"{options[0].value} added to {game['Name']}!")
 
     @char_commands.command(name="display", description="Display character sheet")
     async def displayChar(self, ctx: Context):
@@ -167,22 +144,16 @@ class CharCog(commands.Cog):
 
         char: list[Field] = [field for key in list(char.keys()) for field in char[key]]
 
-        sql = "UPDATE char SET "
-        for field in char:
-            sql += field.label.lower() + " = ?,\n"
-        sql = sql[: len(sql) - 2]
-        sql += "\nWHERE id = ?"
+        @db_call
+        async def update(ctx):
+            return [
+                {
+                    "sql": "UPDATE char SET "
+                    + ",\n".join([field.label.lower() + " = ?" for field in char])
+                    + "\nWHERE id = ?",
+                    "params": [*[field.value for field in char], id],
+                }
+            ]
 
-        try:
-            db = await get_db_connection()
-            cursor = await db.execute(
-                sql,
-                [*[field.value for field in char], id],
-            )
-            await cursor.close()
-            await db.commit()
-            await ctx.respond(content=f"{char[0].value} successfully updated!")
-        except Exception as e:
-            await error(ctx, e)
-        finally:
-            await db.close()
+        await update(ctx)
+        await ctx.respond(f"{char[0].value} successfully updated!")

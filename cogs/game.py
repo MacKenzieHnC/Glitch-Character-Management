@@ -8,7 +8,7 @@ from utils.ui_shortcuts import (
     get_user_selector_input,
 )
 
-from utils.utils import error, get_db_connection
+from utils.utils import db_call, error, get_db_connection
 
 GAME_KEYS = ["id", "GM", "Name"]
 
@@ -18,75 +18,64 @@ def game_from_row(row: Row):
 
 
 async def get_guild_games(ctx: Context):
-    games: list[dict] = []
-    try:
-        db = await get_db_connection()
-        async with db.execute(
-            f"""SELECT *
+    @db_call
+    async def select(ctx):
+        return [
+            {
+                "sql": f"""SELECT *
                 FROM game
                 WHERE guild = ?""",
-            [ctx.guild.id],
-        ) as cursor:
-            async for row in cursor:
-                games.append(game_from_row(row))
-        await cursor.close()
-    except Exception as e:
-        await error(ctx, e)
-    finally:
-        await db.close()
+                "params": [ctx.guild.id],
+            }
+        ]
+
+    games: list[dict] = [game_from_row(row) for row in (await select(ctx))]
+
+    if len(games) < 1:
+        await error(ctx, "No games found!")
 
     return games
 
 
 async def setActiveGame(ctx: Context, game: dict):
-    try:
-        db = await get_db_connection()
-        # Remove all currently active games (should only be 0 or 1 tho)
-        cursor = await db.execute(
-            f"""DELETE
+    @db_call
+    async def calls(ctx):
+        return [
+            {
+                "sql": f"""DELETE
                     FROM active_game
                     WHERE game IN
                         (SELECT game
                         FROM active_game ag
                         JOIN game g ON ag.game = g.id
                         WHERE g.guild = ?)""",
-            [ctx.guild.id],
-        )
-        await cursor.execute(
-            f"""INSERT INTO active_game (game)
+                "params": [ctx.guild.id],
+            },
+            {
+                "sql": f"""INSERT INTO active_game (game)
                         VALUES(?)""",
-            [game["id"]],
-        )
-        await db.commit()
-        await ctx.respond(f"""Active game changed to "{game['Name']}"!""")
-    except Exception as e:
-        await error(ctx, e)
-    finally:
-        if cursor:
-            await cursor.close()
-        await db.close()
+                "params": [game["id"]],
+            },
+        ]
+
+    await calls(ctx)
+    await ctx.respond(f"""Active game changed to "{game['Name']}"!""")
 
 
 async def getActiveGame(ctx: Context):
-    games: list[dict] = []
-    try:
-        cursor = None
-        db = await get_db_connection()
-        cursor = await db.execute(
-            f"""SELECT id, gm, name
+    @db_call
+    async def select(ctx):
+        return [
+            {
+                "sql": f"""SELECT id, gm, name
                 FROM active_game ag
                 JOIN game g ON ag.game = g.id
                 WHERE g.guild = ?""",
-            [ctx.guild.id],
-        )
-        async for row in cursor:
-            games.append(game_from_row(row))
-    except Exception as e:
-        await error(ctx, e)
-    finally:
-        if cursor:
-            await cursor.close()
-        await db.close()
+                "params": [ctx.guild.id],
+            }
+        ]
+
+    games: list[dict] = [game_from_row(row) for row in (await select(ctx))]
 
     if len(games) < 1:
         await error(ctx, "No active game!")
@@ -114,20 +103,18 @@ class GameCog(commands.Cog):
         gm = await get_user_selector_input(ctx, f"And who will be the GM for {name}?")
 
         # Add to db
-        try:
-            db = await get_db_connection()
-            cursor = await db.execute(
-                f"""INSERT INTO game (guild, gm, name)
-                    VALUES("{ctx.guild.id}", "{gm}", "{name}")"""
-            )
-            await db.commit()
-            await ctx.respond(f"Successfully added {name} to db!!", ephemeral=True)
-        except Exception as e:
-            await error(ctx, e)
-        finally:
-            if cursor:
-                await cursor.close()
-            await db.close()
+        @db_call
+        async def insert(ctx):
+            return [
+                {
+                    "sql": f"""INSERT INTO game (guild, gm, name)
+                    VALUES("?, ?, ?)""",
+                    "params": [ctx.guild.id, gm, name],
+                }
+            ]
+
+        await insert(ctx)
+        await ctx.respond(f"Successfully added {name} to db!!")
 
     @game_commands.command(name="get_active", description="Display the active game")
     async def getActive(self, ctx: Context):
