@@ -108,7 +108,7 @@ class GameCog(commands.Cog):
             return [
                 {
                     "sql": f"""INSERT INTO game (guild, gm, name)
-                    VALUES("?, ?, ?)""",
+                    VALUES(?, ?, ?)""",
                     "params": [ctx.guild.id, gm, name],
                 }
             ]
