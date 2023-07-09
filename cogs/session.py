@@ -1,11 +1,23 @@
 import textwrap
 from discord import SlashCommandGroup
+import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 from cogs.char import Stat
 
 from cogs.game import getActiveGame
-from utils.utils import db_call, error, get_db_connection
+from utils.utils import db_call, error
+
+
+def gm_command(func):
+    async def wrapper(*args, **kwargs):
+        ctx = args[1]
+        if ctx.author.id == (await getActiveGame(ctx))["GM"]:
+            return await func(*args, **kwargs)
+        else:
+            await error(ctx, "Only the GM can invoke this command!")
+
+    return wrapper
 
 
 class SessionCog(commands.Cog):
@@ -14,30 +26,29 @@ class SessionCog(commands.Cog):
 
     session_commands = SlashCommandGroup("session", "Tools for the gm")
 
+    @gm_command
     @session_commands.command(
         name="begin",
         description="Begin the session",
     )
     async def begin(self, ctx: Context):
-        if ctx.author.id == (await getActiveGame(ctx))["GM"]:
-
-            @db_call
-            async def update(ctx):
-                return [
-                    {
-                        "sql": (
-                            f"""UPDATE char SET """
-                            + (
-                                ",\n\t".join(
-                                    [
-                                        f"{stat.cost.lower()} = MAX(0, {stat.cost.lower()} - 1)"
-                                        for stat in Stat
-                                    ]
-                                )
+        @db_call
+        async def update(ctx):
+            return [
+                {
+                    "sql": (
+                        f"""UPDATE char SET """
+                        + (
+                            ",\n\t".join(
+                                [
+                                    f"{stat.cost.lower()} = MAX(0, {stat.cost.lower()} - 1)"
+                                    for stat in Stat
+                                ]
                             )
-                            + """\nWHERE EXISTS"""
-                            + textwrap.dedent(
-                                """
+                        )
+                        + """\nWHERE EXISTS"""
+                        + textwrap.dedent(
+                            """
                             (
                                 SELECT c.*
                                     FROM char c
@@ -46,13 +57,11 @@ class SessionCog(commands.Cog):
                                     JOIN game g ON ag.game = g.id
                                     WHERE g.guild = ?
                             )"""
-                            )
-                        ),
-                        "params": [ctx.guild.id],
-                    }
-                ]
+                        )
+                    ),
+                    "params": [ctx.guild.id],
+                }
+            ]
 
-            await update(ctx)
-            await ctx.respond("Session begun!")
-        else:
-            await error(ctx, "Only the GM can invoke this command!")
+        await update(ctx)
+        await ctx.respond("Session begun!")
