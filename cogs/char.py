@@ -71,12 +71,16 @@ async def get_characters(ctx: Context):
     return chars
 
 
-async def get_single_character(ctx: Context, choose_msg: str):
+async def get_single_character(ctx: Context, choose_msg: str, everyone_allowed=False):
     chars = await get_characters(ctx)
     if len(chars) == 1:
         char = chars[0]
     else:
-        char = await get_selector_input(ctx, choose_msg, chars)
+        char = await get_selector_input(
+            ctx,
+            choose_msg,
+            [{"id": -69, "Name": "Everyone"}, *chars] if everyone_allowed else chars,
+        )
     return char
 
 
