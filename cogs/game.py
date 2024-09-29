@@ -17,7 +17,7 @@ def game_from_row(row: Row):
     return {k: row[k.lower()] for k in GAME_KEYS}
 
 
-async def get_guild_games(ctx: Context):
+async def get_guild_games(ctx):
     @db_call
     async def select(ctx):
         return [
@@ -37,7 +37,7 @@ async def get_guild_games(ctx: Context):
     return games
 
 
-async def setActiveGame(ctx: Context, game: dict):
+async def setActiveGame(ctx, game: dict):
     @db_call
     async def calls(ctx):
         return [
@@ -62,7 +62,7 @@ async def setActiveGame(ctx: Context, game: dict):
     await ctx.respond(f"""Active game changed to "{game['Name']}"!""")
 
 
-async def getActiveGame(ctx: Context):
+async def getActiveGame(ctx):
     @db_call
     async def select(ctx):
         return [
@@ -95,7 +95,7 @@ class GameCog(commands.Cog):
     game_commands = SlashCommandGroup("game", "Commands for games")
 
     @game_commands.command(name="add", description="Add a new game to this server")
-    async def addGame(self, ctx: Context):
+    async def addGame(self, ctx):
         # Get game data
         name = await get_text_input(
             ctx, "New Game!", "Name (the name that will appear in menus)"
@@ -117,7 +117,7 @@ class GameCog(commands.Cog):
         await ctx.respond(f"Successfully added {name} to db!!")
 
     @game_commands.command(name="get_active", description="Display the active game")
-    async def getActive(self, ctx: Context):
+    async def getActive(self, ctx):
         if ctx.author.id == ctx.guild.owner_id:
             game = await getActiveGame(ctx)
             await ctx.respond(f"""Currently active game is "{game['Name']}"!""")
@@ -125,7 +125,7 @@ class GameCog(commands.Cog):
             await error(ctx, "Only the server owner can invoke this command!")
 
     @game_commands.command(name="set_active", description="Change the active game")
-    async def setActive(self, ctx: Context):
+    async def setActive(self, ctx):
         if ctx.author.id == ctx.guild.owner_id:
             game: GameCog = await get_selector_input(
                 ctx,
@@ -136,3 +136,7 @@ class GameCog(commands.Cog):
             await setActiveGame(ctx, game)
         else:
             await error(ctx, "Only the server owner can invoke this command!")
+
+
+def setup(bot):
+    bot.add_cog(GameCog(bot))

@@ -22,7 +22,7 @@ class SpendCog(commands.Cog):
             description=f"""Spend {stat.cost.lower()} to do magic""",
         )
         @discord.option("amount", description="Amount to spend", required=True)
-        async def spend(self, ctx: Context, amount: int, stat=stat):
+        async def spend(self, ctx, amount: int, stat=stat):
             char = await get_single_character(
                 ctx,
                 choose_msg=f"What character will be spending {stat.stat}?",
@@ -55,3 +55,7 @@ class SpendCog(commands.Cog):
             )
 
             await ctx.respond(msg)
+
+
+def setup(bot):
+    bot.add_cog(SpendCog(bot))

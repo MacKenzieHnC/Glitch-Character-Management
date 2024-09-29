@@ -46,7 +46,7 @@ def char_from_row(row: Row):
     return {k: row[k.lower()] for k in DEFAULT_CHAR.keys()}
 
 
-async def get_characters(ctx: Context):
+async def get_characters(ctx):
     game = await getActiveGame(ctx)
 
     @db_call
@@ -71,7 +71,7 @@ async def get_characters(ctx: Context):
     return chars
 
 
-async def get_single_character(ctx: Context, choose_msg: str, everyone_allowed=False):
+async def get_single_character(ctx, choose_msg: str, everyone_allowed=False):
     chars = await get_characters(ctx)
     if len(chars) == 1:
         char = chars[0]
@@ -96,7 +96,7 @@ class CharCog(commands.Cog):
     char_commands = SlashCommandGroup("char", "Commands for characters")
 
     @char_commands.command(name="add", description="Add a character")
-    async def addChar(self, ctx: Context):
+    async def addChar(self, ctx):
         game: GameCog = await get_selector_input(
             ctx,
             "What game will this character belong to?",
@@ -131,14 +131,14 @@ class CharCog(commands.Cog):
         await ctx.respond(content=f"{options[0].value} added to {game['Name']}!")
 
     @char_commands.command(name="display", description="Display character sheet")
-    async def displayChar(self, ctx: Context):
+    async def displayChar(self, ctx):
         char = to_dict(
             await get_single_character(ctx, "What character would you like to display?")
         )
         await get_form(ctx, char, display_only=True)
 
     @char_commands.command(name="edit", description="Edit character sheet")
-    async def displayChar(self, ctx: Context):
+    async def displayChar(self, ctx):
         char = await get_single_character(
             ctx, "What character would you like to display?"
         )
@@ -161,3 +161,7 @@ class CharCog(commands.Cog):
 
         await update(ctx)
         await ctx.respond(f"{char[0].value} successfully updated!")
+
+
+def setup(bot):
+    bot.add_cog(CharCog(bot))

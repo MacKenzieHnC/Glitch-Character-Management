@@ -31,7 +31,7 @@ class SessionCog(commands.Cog):
         name="begin",
         description="Begin the session",
     )
-    async def begin(self, ctx: Context):
+    async def begin(self, ctx):
         @db_call
         async def update(ctx):
             return [
@@ -69,7 +69,7 @@ class SessionCog(commands.Cog):
         description="Begin the session",
     )
     @discord.option("xp", description="Amount of xp to give out", required=True)
-    async def xp(self, ctx: Context, xp: int):
+    async def xp(self, ctx, xp: int):
         char = await get_single_character(
             ctx, choose_msg=f"Who's getting {xp}xp?", everyone_allowed=True
         )
@@ -95,3 +95,7 @@ class SessionCog(commands.Cog):
 
         await update(ctx)
         await ctx.respond(f"{char['Name']} got {xp} XP!")
+
+
+def setup(bot):
+    bot.add_cog(SessionCog(bot))
