@@ -1,6 +1,8 @@
-import discord
-import os  # default module
+# Python 3.10.3
+import os
+import discord  # py-cord 2.6.1
 from dotenv import load_dotenv
+
 
 load_dotenv()  # load all the variables from the env file
 bot = discord.Bot()
