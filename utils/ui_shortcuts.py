@@ -1,7 +1,7 @@
 import discord
 import asyncio
 
-import discord.ext.pages
+import discord.ext.pages as pages
 from discord.ext.commands import Context
 from discord import Interaction
 
