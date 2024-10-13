@@ -2,3 +2,5 @@
 __pycache__
 data/Assets.db
 .vscode/*
+auto-py-to-exe-config.json
+output/glitch-character-management.exe
