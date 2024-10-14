@@ -8,82 +8,95 @@ import tkinter as tk
 
 
 class My_Bot:
-    def __init__(self) -> None:
+
+    def __init__(self, on_ready, on_ready_args) -> None:
         # Set up bot
-        self.loop = None
         load_dotenv()  # load all the variables from the env file
         self.bot = None
+        self.on_ready = on_ready
+        self.on_ready_args = on_ready_args
 
-    def run(self):
-
-        label.configure(text="Starting...")
-        button.pack_forget()
-        self.loop = asyncio.new_event_loop()
-        self.bot = discord.Bot(loop=self.loop)
+    def initialize(self, loop):
+        self.bot = discord.Bot(loop=loop)
 
         for cog in ["cogs.game", "cogs.costs", "cogs.char", "cogs.session"]:
             self.bot.load_extension(cog)
 
         @self.bot.event
         async def on_ready():
-            label.configure(text="Running")
-            button.configure(text="STOP", command=self.close)
-            button.pack(pady=10)
+            self.on_ready(*self.on_ready_args)
 
-        t1 = threading.Thread(target=self.bot.run, args=(os.getenv("DEV"),))
-        t1.start()
-
-    async def internal_close(self):
+    async def close(self):
         self.bot.clear()
         await self.bot.close()
         exit()
 
+
+class GUI:
+    def __init__(self):
+        self.loop = None
+        self.root = tk.Tk()
+        self.root.title("Glitch Character Management")
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.button = tk.Button(
+            self.root,
+            text="Start",
+            command=self.run,
+            width=10,
+            pady=10,
+            font=("Arial", 16, "bold"),
+        )
+        self.label = tk.Label(
+            self.root,
+            text="Idle",
+            anchor=tk.CENTER,
+            width=20,
+            bd=3,
+            font=("Arial", 16, "bold"),
+            justify=tk.CENTER,
+        )
+
+        self.bot = None
+
+    def startup(self):
+        self.bot = My_Bot(self.on_ready, [self.label, self.button])
+
+        # Start the GUI event loop
+        self.label.pack(
+            padx=20,
+            pady=10,
+        )
+        self.button.pack(pady=10)
+        self.root.mainloop()
+
+    def run(self):
+
+        self.label.configure(text="Starting...")
+        self.button.pack_forget()
+        self.loop = asyncio.new_event_loop()
+        self.bot.initialize(self.loop)
+        t1 = threading.Thread(target=self.bot.bot.run, args=(os.getenv("DEV"),))
+        t1.start()
+
     def close(self):
         try:
-            label.configure(text="Shutting down...")
-            button.pack_forget()
-            asyncio.run_coroutine_threadsafe(self.internal_close(), self.loop)
-            label.configure(text="Idle")
-            button.configure(text="RUN", command=self.run)
-            button.pack(pady=10)
+            self.label.configure(text="Shutting down...")
+            self.button.pack_forget()
+            asyncio.run_coroutine_threadsafe(self.bot.close(), self.loop)
+            self.label.configure(text="Idle")
+            self.button.configure(text="RUN", command=self.run)
+            self.button.pack(pady=10)
         except Exception as e:
             print(e)
 
+    def on_closing(self):
+        self.close()
+        self.root.destroy()
 
-def on_closing():
-    bot.close()
-    root.destroy()
+    def on_ready(self, label, button):
+        label.configure(text="Running")
+        button.configure(text="STOP", command=self.close)
+        button.pack(pady=10)
 
 
-bot = My_Bot()
-
-# Create the main window
-root = tk.Tk()
-root.title("Glitch Character Management")
-root.protocol("WM_DELETE_WINDOW", on_closing)
-# Create a label widget
-label = tk.Label(
-    root,
-    text="Idle",
-    anchor=tk.CENTER,
-    width=20,
-    bd=3,
-    font=("Arial", 16, "bold"),
-    justify=tk.CENTER,
-)
-label.pack(
-    padx=20,
-    pady=10,
-)
-button = tk.Button(
-    root,
-    text="Start",
-    command=bot.run,
-    width=10,
-    pady=10,
-    font=("Arial", 16, "bold"),
-)
-button.pack(pady=10)
-
-# Start the GUI event loop
-root.mainloop()
+GUI().startup()
