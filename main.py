@@ -50,7 +50,7 @@ class GUI:
         self.button.pack_forget()
         self.loop = asyncio.new_event_loop()
         self.bot.initialize(self.loop)
-        t1 = threading.Thread(target=self.bot.bot.run, args=(os.getenv("DEV"),))
+        t1 = threading.Thread(target=self.bot.bot.run, args=(os.getenv("TOKEN"),))
         t1.start()
 
     def close(self):
