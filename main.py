@@ -30,7 +30,7 @@ class My_Bot:
             button.configure(text="STOP", command=self.close)
             button.pack(pady=10)
 
-        t1 = threading.Thread(target=self.bot.run, args=(os.getenv("TOKEN"),))
+        t1 = threading.Thread(target=self.bot.run, args=(os.getenv("DEV"),))
         t1.start()
 
     async def internal_close(self):
