@@ -1,12 +1,8 @@
-import aiosqlite
 from discord import SlashCommandGroup
 import discord
 from discord.ext import commands
-from discord.ext.commands import Context
-from cogs.char import Stat
-
-from cogs.char import get_single_character
-from utils.utils import db_call, error
+from cogs.char import Stat, get_single_character
+from utils.utils import db_call
 
 
 class SpendCog(commands.Cog):
