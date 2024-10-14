@@ -11,25 +11,18 @@ from utils.utils import error
 DEFAULT_TIMEOUT = 1800
 
 
-async def get_text_input(ctx: Context, title: str, labels: str | list[str]):
-    response: list[str] = []
+async def get_text_input(ctx: Context, title: str, label: str):
+    response = []
 
     class TextModal(discord.ui.Modal):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
-            if isinstance(labels, str):
-                self.add_item(discord.ui.InputText(label=labels))
-            else:
-                for label in labels:
-                    self.add_item(discord.ui.InputText(label=label))
 
-        async def callback(self, interaction: Interaction):
-            if interaction.user.id == ctx.author.id:
-                for child in self.children:
-                    response.append(child.value)
-                await interaction.response.edit_message(
-                    content="Great!", delete_after=0
-                )
+            self.add_item(discord.ui.InputText(label=label))
+
+        async def callback(self, interaction: discord.Interaction):
+            response.append(self.children[0].value)
+            await interaction.response.send_message(content="Great!", view=None)
 
     modal = TextModal(title=title)
     await ctx.send_modal(modal)
