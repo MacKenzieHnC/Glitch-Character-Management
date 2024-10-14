@@ -112,31 +112,6 @@ async def get_selector_input(ctx: Context, message: str, options):
         raise Exception("Timeout")
 
 
-async def confirmation_button(ctx: Context, message, confirm_method, cancel_method):
-    class ButtonView(discord.ui.View):
-        @discord.ui.button(label="CANCEL", style=discord.ButtonStyle.red, row=2)
-        async def submit_button_callback(self, button, interaction: Interaction):
-            if interaction.user.id == ctx.author.id:
-                await cancel_method()
-                await interaction.response.edit_message(
-                    content=f"Success!",
-                    view=None,
-                    delete_after=0,
-                )
-
-        @discord.ui.button(label="OKAY", style=discord.ButtonStyle.green, row=2)
-        async def submit_button_callback(self, button, interaction: Interaction):
-            if interaction.user.id == ctx.author.id:
-                await confirm_method()
-                await interaction.response.edit_message(
-                    content=f"Success!",
-                    view=None,
-                    delete_after=0,
-                )
-
-    await ctx.respond(message, view=ButtonView(), ephemeral=True)
-
-
 async def await_variable(ctx: Context, response: list, timeout=DEFAULT_TIMEOUT):
     while len(response) == 0 and timeout > 0:
         await asyncio.sleep(1)
