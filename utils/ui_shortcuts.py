@@ -164,8 +164,11 @@ async def get_form(ctx: Context, options: dict[list[Field]], display_only=False)
                                     + " "
                                     + f"`Error: invalid`"
                                 )
-                        await interaction.response.edit_message(content="Success")
-                        await paginator.goto_page(current_page)
+                        await paginator.update(
+                            interaction=interaction,
+                            custom_view=buttons,
+                            current_page=paginator.current_page,
+                        )
 
                 modal = EditModal(title=list(options.keys())[paginator.current_page])
                 await interaction.response.send_modal(modal)
@@ -204,6 +207,10 @@ async def get_form(ctx: Context, options: dict[list[Field]], display_only=False)
             return response[0]
         except Exception as e:
             paginator.custom_view = None
-            await paginator.goto_page(paginator.current_page)
+            await ctx.interaction.response.edit_message(
+                content="Success!",
+                view=None,
+                delete_after=0,
+            )
             await error(ctx, e)
             raise Exception("Timeout")
