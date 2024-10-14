@@ -1,12 +1,10 @@
 import discord  # py-cord 2.6.1
-from dotenv import load_dotenv
 
 
 class My_Bot:
 
     def __init__(self, on_ready, on_ready_args) -> None:
         # Set up bot
-        load_dotenv()  # load all the variables from the env file
         self.bot = None
         self.on_ready = on_ready
         self.on_ready_args = on_ready_args

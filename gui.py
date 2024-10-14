@@ -7,6 +7,7 @@ from bot import My_Bot
 
 class GUI:
     def __init__(self):
+        load_dotenv()
         self.loop = None
         self.root = tk.Tk()
         self.root.title("Glitch Character Management")
